@@ -1,0 +1,16 @@
+{
+  "_comment": "Conductivite thermique lambda (W/m.K) indicative par materiau. Valeurs de degrossissage V1, PAS une source reglementaire certifiee (cf README).",
+  "glass_wool": { "label": "Laine de verre", "lambda_w_per_mk": 0.035 },
+  "rock_wool": { "label": "Laine de roche", "lambda_w_per_mk": 0.038 },
+  "wood_fiber": { "label": "Fibre de bois", "lambda_w_per_mk": 0.040 },
+  "cellulose_wadding": { "label": "Ouate de cellulose", "lambda_w_per_mk": 0.039 },
+  "eps": { "label": "Polystyrene expanse (PSE)", "lambda_w_per_mk": 0.032 },
+  "xps": { "label": "Polystyrene extrude (XPS)", "lambda_w_per_mk": 0.030 },
+  "pir": { "label": "Mousse polyurethane / PIR", "lambda_w_per_mk": 0.023 },
+  "cellular_concrete": { "label": "Beton cellulaire", "lambda_w_per_mk": 0.100 },
+  "terracotta_monomur": { "label": "Brique terre cuite monomur", "lambda_w_per_mk": 0.090 },
+  "concrete_block": { "label": "Parpaing / agglo beton", "lambda_w_per_mk": 1.050 },
+  "traditional_brick": { "label": "Brique traditionnelle pleine", "lambda_w_per_mk": 0.750 },
+  "stone": { "label": "Pierre", "lambda_w_per_mk": 1.700 },
+  "wood": { "label": "Bois (ossature/bardage)", "lambda_w_per_mk": 0.130 }
+}

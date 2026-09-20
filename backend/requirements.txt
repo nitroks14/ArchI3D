@@ -1,0 +1,31 @@
+# --- Web framework ---
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# --- Imaging / computer vision (plan heuristic room detection, photo handling) ---
+pillow==10.4.0
+numpy==2.1.1
+opencv-python-headless==4.10.0.84
+
+# --- 3D volume generation (rooms -> boxes -> GLB export) ---
+trimesh==4.4.9
+pygltflib==1.16.2
+
+# --- OCR (plan room labels, material invoices) ---
+pytesseract==0.3.13
+pypdf==5.0.1
+
+# --- Object storage (local dev fallback + Cloudflare R2, S3-compatible) ---
+boto3==1.35.24
+
+# --- AI providers (vision analysis + questionnaire generation) ---
+google-generativeai==0.8.3
+anthropic==0.34.2
+
+# --- HTTP client (geocoding, climat) + Dev/test ---
+pytest==8.3.3
+ruff==0.6.9
+httpx==0.27.2

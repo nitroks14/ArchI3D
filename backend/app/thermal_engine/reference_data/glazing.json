@@ -1,0 +1,9 @@
+{
+  "_comment": "Coefficients Uw indicatifs (W/m2.K) par type de vitrage/menuiserie courant. Valeurs V1 de degrossissage, PAS une source RE2020 certifiee.",
+  "single": { "label": "Simple vitrage", "uw_w_per_m2k": 5.0 },
+  "double_pvc": { "label": "Double vitrage PVC", "uw_w_per_m2k": 1.6 },
+  "double_alu": { "label": "Double vitrage aluminium", "uw_w_per_m2k": 2.0 },
+  "double_wood": { "label": "Double vitrage bois", "uw_w_per_m2k": 1.7 },
+  "triple": { "label": "Triple vitrage", "uw_w_per_m2k": 0.9 },
+  "unknown": { "label": "Type de vitrage inconnu (valeur par defaut prudente)", "uw_w_per_m2k": 2.8 }
+}

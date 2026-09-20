@@ -1,0 +1,52 @@
+{
+  "_comment": "Catalogue illustre des typologies de construction courantes, utilise dans le questionnaire (identification visuelle) et comme reference de comparaison pour l'analyse vision IA. default_wall_u_value en W/m2.K est une valeur moyenne indicative tous niveaux d'isolation confondus - a affiner via le questionnaire/les factures materiaux.",
+  "wood_frame": {
+    "label": "Ossature bois",
+    "description": "Structure porteuse en bois, isolant entre montants (laine ou fibre de bois), bardage ou enduit sur panneau.",
+    "insulation_position": "integrated",
+    "default_wall_u_value": 0.25,
+    "image_asset": "wood_frame.svg"
+  },
+  "ite": {
+    "label": "Isolation Thermique par l'Exterieur (ITE)",
+    "description": "Mur porteur (beton, parpaing, brique...) recouvert d'un isolant continu en facade exterieure, fini par enduit ou bardage.",
+    "insulation_position": "ITE",
+    "default_wall_u_value": 0.22,
+    "image_asset": "ite.svg"
+  },
+  "monomur": {
+    "label": "Monomur (terre cuite / beton cellulaire)",
+    "description": "Bloc de grande epaisseur a alveoles ou beton cellulaire assurant a la fois structure et isolation, sans isolant rapporte.",
+    "insulation_position": "none",
+    "default_wall_u_value": 0.45,
+    "image_asset": "monomur.svg"
+  },
+  "parpaing_iti": {
+    "label": "Parpaing/agglo + Isolation Thermique Interieure (ITI)",
+    "description": "Mur porteur en parpaing/agglo beton, isolant place cote interieur (doublage), plaque de platre en finition.",
+    "insulation_position": "ITI",
+    "default_wall_u_value": 0.30,
+    "image_asset": "parpaing_iti.svg"
+  },
+  "brick": {
+    "label": "Brique traditionnelle",
+    "description": "Mur en brique pleine ou creuse traditionnelle, isolation rapportee variable ou absente (batiment ancien).",
+    "insulation_position": "none",
+    "default_wall_u_value": 1.20,
+    "image_asset": "brick.svg"
+  },
+  "stone": {
+    "label": "Pierre",
+    "description": "Mur en pierre massive (batiment ancien), forte inertie mais isolation thermique intrinseque faible.",
+    "insulation_position": "none",
+    "default_wall_u_value": 1.80,
+    "image_asset": "stone.svg"
+  },
+  "unknown": {
+    "label": "Type de construction non identifie",
+    "description": "Aucune information disponible - valeur par defaut prudente utilisee en attendant reponse au questionnaire.",
+    "insulation_position": "none",
+    "default_wall_u_value": 2.50,
+    "image_asset": "unknown.svg"
+  }
+}

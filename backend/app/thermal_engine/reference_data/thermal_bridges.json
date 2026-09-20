@@ -1,0 +1,7 @@
+{
+  "_comment": "Coefficients lineiques psi (W/m.K) indicatifs par type de jonction (ponts thermiques usuels). Valeurs V1 de degrossissage inspirees d'ordres de grandeur Th-Bat, PAS une source certifiee.",
+  "wall_floor": { "label": "Jonction mur / plancher bas", "psi_w_per_mk": 0.5 },
+  "wall_roof": { "label": "Jonction mur / toiture-plancher haut", "psi_w_per_mk": 0.4 },
+  "wall_wall": { "label": "Jonction mur / refend", "psi_w_per_mk": 0.15 },
+  "wall_opening": { "label": "Tour de fenetre/porte", "psi_w_per_mk": 0.2 }
+}

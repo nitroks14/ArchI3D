@@ -1,0 +1,22 @@
+# --- Node / frontend ---
+node_modules/
+dist/
+*.tsbuildinfo
+.vite/
+
+# --- Python / backend ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# --- Runtime data / secrets ---
+.env
+backend/storage/**
+!backend/storage/.gitkeep
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store

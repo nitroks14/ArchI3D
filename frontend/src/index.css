@@ -1,0 +1,142 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f4f5f7;
+}
+
+.project-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.panel {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.hint {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.dropzone {
+  border: 2px dashed #bbb;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.dropzone--active {
+  border-color: #2b6a8a;
+  background: #eef6fa;
+}
+
+.viewer {
+  width: 100%;
+  height: 420px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #1b1d21;
+}
+
+.viewer-placeholder {
+  padding: 2rem;
+  text-align: center;
+  color: #888;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+}
+
+.choice-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.catalog-card {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0.25rem;
+  background: white;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.catalog-card img {
+  width: 100%;
+  border-radius: 4px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.metrics {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: #eef6fa;
+  font-size: 0.8rem;
+}
+
+.badge--error {
+  background: #fbeaea;
+  color: #a13d2b;
+}
+
+@media (min-width: 640px) {
+  .project-page {
+    padding: 2rem;
+  }
+}

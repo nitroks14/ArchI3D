@@ -1,0 +1,209 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import type { GenerateModelParams } from "@/domain/repositories/ModelGenerationRepository";
+import type { ProjectState } from "@/domain/model/Project";
+import type { QuestionnaireState } from "@/domain/model/Question";
+import type { ConstructionTypeCatalog } from "@/domain/model/ConstructionTypeCatalog";
+import { createProject } from "@/application/use-cases/CreateProject";
+import { uploadFiles } from "@/application/use-cases/UploadFiles";
+import { analyzePhoto } from "@/application/use-cases/AnalyzePhoto";
+import { generateBuildingModel } from "@/application/use-cases/GenerateBuildingModel";
+import { manageMaterialInvoice } from "@/application/use-cases/ManageMaterialInvoice";
+import { runQuestionnaireStep } from "@/application/use-cases/RunQuestionnaireStep";
+import { computeThermalReport } from "@/application/use-cases/ComputeThermalReport";
+import { fetchConstructionCatalog } from "@/application/use-cases/FetchConstructionCatalog";
+import { manageBuildingLocation } from "@/application/use-cases/ManageBuildingLocation";
+import { HttpProjectRepository } from "@/infrastructure/http/HttpProjectRepository";
+import { HttpIngestionRepository } from "@/infrastructure/http/HttpIngestionRepository";
+import { HttpVisionAnalysisRepository } from "@/infrastructure/http/HttpVisionAnalysisRepository";
+import { HttpModelGenerationRepository } from "@/infrastructure/http/HttpModelGenerationRepository";
+import { HttpMaterialInvoiceRepository } from "@/infrastructure/http/HttpMaterialInvoiceRepository";
+import { HttpQuestionnaireRepository } from "@/infrastructure/http/HttpQuestionnaireRepository";
+import { HttpThermalReportRepository } from "@/infrastructure/http/HttpThermalReportRepository";
+import { HttpReferenceDataRepository } from "@/infrastructure/http/HttpReferenceDataRepository";
+import { HttpGeolocationRepository } from "@/infrastructure/http/HttpGeolocationRepository";
+import { ApiError } from "@/infrastructure/http/ApiClient";
+
+// Instanciation unique des repositories HTTP (pas de framework DI pour ce scaffold V1).
+const projectRepo = new HttpProjectRepository();
+const ingestionRepo = new HttpIngestionRepository();
+const visionRepo = new HttpVisionAnalysisRepository();
+const modelRepo = new HttpModelGenerationRepository();
+const invoiceRepo = new HttpMaterialInvoiceRepository();
+const questionnaireRepo = new HttpQuestionnaireRepository();
+const thermalRepo = new HttpThermalReportRepository();
+const referenceRepo = new HttpReferenceDataRepository();
+const geolocationRepo = new HttpGeolocationRepository();
+
+export function useProject() {
+  const [project, setProject] = useState<ProjectState | null>(null);
+  const [questionnaire, setQuestionnaire] = useState<QuestionnaireState | null>(null);
+  const [constructionCatalog, setConstructionCatalog] = useState<ConstructionTypeCatalog | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const uploads = useMemo(() => uploadFiles(ingestionRepo), []);
+  const invoiceActions = useMemo(() => manageMaterialInvoice(invoiceRepo), []);
+  const questionnaireActions = useMemo(() => runQuestionnaireStep(questionnaireRepo), []);
+  const locationActions = useMemo(() => manageBuildingLocation(geolocationRepo), []);
+
+  const runSafely = useCallback(async <T,>(action: () => Promise<T>): Promise<T | undefined> => {
+    setBusy(true);
+    setError(null);
+    try {
+      return await action();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Erreur inattendue, voir la console.");
+      console.error(err);
+      return undefined;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void runSafely(async () => {
+      const created = await createProject(projectRepo)();
+      setProject(created);
+      const catalog = await fetchConstructionCatalog(referenceRepo)();
+      setConstructionCatalog(catalog);
+      return created;
+    });
+  }, [runSafely]);
+
+  const refreshProject = useCallback(
+    (projectId: string) => runSafely(() => projectRepo.getProject(projectId).then(setProject)),
+    [runSafely],
+  );
+
+  const refreshQuestionnaire = useCallback(
+    (projectId: string) =>
+      runSafely(() => questionnaireActions.next(projectId).then(setQuestionnaire)),
+    [questionnaireActions, runSafely],
+  );
+
+  const uploadAerialImage = useCallback(
+    (file: File) =>
+      project && runSafely(() => uploads.aerialImage(project.id, file).then(setProject)),
+    [project, uploads, runSafely],
+  );
+
+  const uploadPlan = useCallback(
+    (file: File, floorLabel: string) =>
+      project && runSafely(() => uploads.plan(project.id, file, floorLabel).then(setProject)),
+    [project, uploads, runSafely],
+  );
+
+  const uploadPhoto = useCallback(
+    (file: File, kind: "interior" | "exterior") =>
+      project && runSafely(() => uploads.photo(project.id, file, kind).then(setProject)),
+    [project, uploads, runSafely],
+  );
+
+  const uploadInvoice = useCallback(
+    (file: File) => project && runSafely(() => uploads.invoice(project.id, file).then(setProject)),
+    [project, uploads, runSafely],
+  );
+
+  const analyzeProjectPhoto = useCallback(
+    (photoId: string) =>
+      project &&
+      runSafely(async () => {
+        await analyzePhoto(visionRepo)(project.id, photoId);
+        await refreshProject(project.id);
+      }),
+    [project, refreshProject, runSafely],
+  );
+
+  const generateModel = useCallback(
+    (params: GenerateModelParams) =>
+      project &&
+      runSafely(async () => {
+        await generateBuildingModel(modelRepo)(project.id, params);
+        await refreshProject(project.id);
+      }),
+    [project, refreshProject, runSafely],
+  );
+
+  const extractInvoice = useCallback(
+    (invoiceId: string) =>
+      project &&
+      runSafely(async () => {
+        await invoiceActions.extract(project.id, invoiceId);
+        await refreshProject(project.id);
+      }),
+    [project, invoiceActions, refreshProject, runSafely],
+  );
+
+  const linkInvoice = useCallback(
+    (invoiceId: string, roomId: string, wallId: string) =>
+      project &&
+      runSafely(async () => {
+        await invoiceActions.link(project.id, invoiceId, roomId, wallId);
+        await refreshProject(project.id);
+      }),
+    [project, invoiceActions, refreshProject, runSafely],
+  );
+
+  const answerQuestion = useCallback(
+    (field: string, value: string) =>
+      project &&
+      runSafely(async () => {
+        const next = await questionnaireActions.answer(project.id, field, value);
+        setQuestionnaire(next);
+        await refreshProject(project.id);
+      }),
+    [project, questionnaireActions, refreshProject, runSafely],
+  );
+
+  const getThermalReport = useCallback(
+    () =>
+      project &&
+      runSafely(async () => {
+        const report = await computeThermalReport(thermalRepo)(project.id);
+        setProject((current) => (current ? { ...current, thermalReport: report } : current));
+      }),
+    [project, runSafely],
+  );
+
+  const geocodeAddress = useCallback(
+    (address: string) =>
+      project &&
+      runSafely(async () => {
+        await locationActions.geocode(project.id, address);
+        await refreshProject(project.id);
+      }),
+    [project, locationActions, refreshProject, runSafely],
+  );
+
+  const updateNorthOffset = useCallback(
+    (northOffsetDeg: number) =>
+      project &&
+      runSafely(async () => {
+        await locationActions.updateLocation(project.id, { northOffsetDeg });
+        await refreshProject(project.id);
+      }),
+    [project, locationActions, refreshProject, runSafely],
+  );
+
+  return {
+    project,
+    questionnaire,
+    constructionCatalog,
+    error,
+    busy,
+    refreshQuestionnaire: () => project && refreshQuestionnaire(project.id),
+    uploadAerialImage,
+    uploadPlan,
+    uploadPhoto,
+    uploadInvoice,
+    analyzeProjectPhoto,
+    generateModel,
+    extractInvoice,
+    linkInvoice,
+    answerQuestion,
+    getThermalReport,
+    geocodeAddress,
+    updateNorthOffset,
+  };
+}

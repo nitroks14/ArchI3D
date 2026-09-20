@@ -1,0 +1,12 @@
+# Usage local uniquement (dev). Le deploiement production du backend est documente dans le README
+# (conteneur Docker independant sur Render/Fly.io/autre). Le frontend n'est pas conteneurise : il
+# est buildé statiquement et deploye sur GitHub Pages (cf .github/workflows/frontend-deploy.yml).
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/storage:/app/storage
