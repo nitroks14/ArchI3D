@@ -22,6 +22,7 @@ implementation exhaustive.
 - [Stockage des fichiers](#stockage-des-fichiers)
 - [Geolocalisation, orientation et donnees climatiques](#geolocalisation-orientation-et-donnees-climatiques)
 - [Bibliotheque de valeurs thermiques par defaut](#bibliotheque-de-valeurs-thermiques-par-defaut)
+- [Inertie thermique](#inertie-thermique)
 - [Authentification (Google OAuth)](#authentification-google-oauth)
 - [Lancer le projet en local](#lancer-le-projet-en-local)
 - [Deploiement](#deploiement)
@@ -101,6 +102,7 @@ Building
 ├── latitude / longitude / altitudeM        (geolocalisation, cf app/geolocation)
 ├── northOffsetDeg                          (orientation Nord, widget compas frontend)
 ├── SolarInstallation[]                     (panneaux solaires existants, detection vision IA ou saisie)
+├── thermalInertiaClass                     (leger/moyen/lourd, calcule a chaque rapport thermique)
 └── Floor[]  (RDC, Etage 1, Combles, Sous-sol...)
     └── Room[]
         ├── name / suggestedName / nameConfirmed   (nom propose par l'IA, toujours editable)
@@ -296,11 +298,51 @@ premier fichier uploade dans cette "arborescence".
   photos/schemas illustratifs en V2. Ce catalogue est affiche dans le questionnaire pour
   l'identification visuelle par l'utilisateur, et sert de reference de comparaison pour l'analyse
   vision IA.
+- `thermal_inertia.json` - poids leger/moyen/lourd par typologie de construction et par materiau,
+  utilise pour calculer la classe d'inertie thermique (cf section dediee ci-dessous).
 
 **Toutes ces valeurs sont indicatives**, issues d'ordres de grandeur usuels - **ce n'est pas une
 source reglementaire certifiee** (pas de connexion a une base Th-Bat/RE2020 officielle en V1).
 Le rapport thermique retourne systematiquement un champ `assumptions` listant explicitement
 toutes les hypotheses de calcul utilisees pour rester transparent.
+
+## Inertie thermique
+
+Le rapport thermique calcule automatiquement une **classe d'inertie thermique simplifiee a 3
+niveaux** (leger/moyen/lourd), inspiree de l'approche RE2020 sans en reprendre la methode
+complete (5 classes normees Th-I, avec un Cm en J/m2.K par zone) - cf
+`backend/app/thermal_engine/inertia.py`.
+
+**Deux facteurs, de nature tres differente :**
+
+1. **Parois structurelles (dominant, seul facteur reellement norme)** - derive automatiquement de
+   la masse surfacique approximative des materiaux/typologies des parois exposees cote interieur
+   (murs exterieurs, planchers, toiture) : si une `MaterialLayer` precise est renseignee (vision,
+   facture, saisie utilisateur), son materiau prime ; sinon, la typologie de construction de la
+   paroi (`Wall.constructionType`, cf catalogue illustre) sert de repli (ex : ITE -> masse dense
+   exposee cote interieur -> "lourd" ; ossature bois/ITI -> masse dense isolee ou absente ->
+   "leger"). Score moyen pondere par surface -> classe retenue (seuils dans
+   `thermal_inertia.json`).
+2. **Mobilier/elements massifs (secondaire, QUALITATIF)** - une question du questionnaire
+   ("elements massifs importants : cheminee en pierre, poele de masse, chape beton apparente,
+   mobilier massif en bois ?") et/ou des indices detectes par l'analyse vision des photos
+   (nouveau champ `heavyThermalMassElementsDetected` sur `PhotoAnalysis`) peuvent faire basculer
+   la classe calculee a l'etape 1 d'un cran vers le haut (leger -> moyen, moyen -> lourd).
+   **Important - distinction toujours visible dans les `assumptions` du rapport** : ce facteur est
+   une **correction indicative uniquement**. Les methodes reglementaires RE2020/RT ne
+   comptabilisent **pas** le mobilier dans le calcul officiel d'inertie, seulement les parois -
+   ce N'EST PAS une donnee d'entree certifiee, juste un indice qualitatif optionnel.
+
+**Integration au calcul du besoin de chauffage : volontairement NON appliquee.** L'inertie reduit
+en realite la consommation via un effet de dephasage/amortissement (meilleure utilisation des
+apports solaires et internes), mais le moteur actuel est un calcul **statique** (coefficient de
+deperdition x DJU), sans notion de dynamique temporelle ni d'apports. Appliquer un facteur
+correctif arbitraire sur le kWh/m²/an aurait ete un calcul non fonde. Le champ
+`thermalInertiaClass` est donc calcule et expose dans le rapport (a titre informatif), mais
+**n'influence pas** `estimatedKwhPerM2PerYear`. Le vrai point d'integration - documente ici plutot
+qu'improvise - necessiterait soit une methode a facteur d'utilisation des apports dependant de
+l'inertie (type Th-C-E simplifiee), soit une **simulation thermique dynamique (STD)** : cf
+roadmap V2.
 
 ## Authentification (Google OAuth)
 
@@ -476,8 +518,14 @@ Cloudflare R2 pour eviter toute perte de fichiers entre redeploiements.
   l'application ArchI3D elle-meme).
 - Generation de types partages frontend/backend depuis l'OpenAPI (reduire le risque de
   divergence des schemas maintenus a la main).
-- Vraie base de donnees + gestion multi-utilisateur/authentification.
+- Vraie base de donnees (Postgres/SQLite) a la place du JSON sur disque.
 - Remplacement des placeholders SVG du catalogue de construction par de vraies photos/schemas.
+- Integration de l'inertie thermique au calcul du besoin de chauffage (facteur d'utilisation des
+  apports dependant de l'inertie type Th-C-E simplifiee, ou simulation thermique dynamique STD) -
+  cf section "Inertie thermique" pour le detail de ce qui est deja calcule (la classe) vs ce qui
+  reste a brancher (l'effet reel sur le kWh/m²/an).
+- Rattacher automatiquement une `SolarInstallation`/le cap boussole d'une photo a une `Wall`
+  precise des que la segmentation par facade (V2, ci-dessus) existera.
 
 ## Outils / MCP potentiellement necessaires
 

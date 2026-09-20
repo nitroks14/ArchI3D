@@ -25,7 +25,17 @@ def get_thermal_report(state: ProjectState = Depends(get_owned_project_state)) -
     if state.building_model is None:
         raise HTTPException(status_code=400, detail="Genere d'abord le modele 3D du batiment")
 
-    report = compute_thermal_report(state.building_model)
+    # Facteur secondaire qualitatif d'inertie (mobilier/elements massifs) - cf app/thermal_engine
+    # /inertia.py pour la distinction avec le facteur structurel norme.
+    heavy_mass_hint = state.questionnaire_answers.get("building:heavy_thermal_mass")
+    heavy_mass_vision_hints = [
+        item
+        for photo in state.photos
+        if photo.analysis
+        for item in photo.analysis.get("heavyThermalMassElementsDetected", [])
+    ]
+
+    report = compute_thermal_report(state.building_model, heavy_mass_hint, heavy_mass_vision_hints)
     state.thermal_report = report
     get_project_store().save(state)
     return report

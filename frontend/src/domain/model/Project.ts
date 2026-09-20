@@ -1,5 +1,5 @@
 import type { Annex } from "@/domain/model/Annex";
-import type { BuildingModel } from "@/domain/model/Building";
+import type { BuildingModel, ThermalInertiaClass } from "@/domain/model/Building";
 import type { UploadedFile } from "@/shared/types/common";
 
 export interface PlanFile extends UploadedFile {
@@ -22,6 +22,8 @@ export interface PhotoAnalysis {
   suggestedRoomType: string | null;
   suggestedRoomName: string | null;
   suggestedCardinalOrientation: string | null;
+  /** Indice qualitatif pour l'inertie thermique (cheminee en pierre, chape beton...) - non norme. */
+  heavyThermalMassElementsDetected: string[];
   confidence: string;
 }
 
@@ -81,5 +83,6 @@ export interface ThermalReport {
   djuSource: string;
   estimatedAnnualHeatingKwh: number;
   estimatedKwhPerM2PerYear: number | null;
+  thermalInertiaClass: ThermalInertiaClass | null;
   assumptions: string[];
 }

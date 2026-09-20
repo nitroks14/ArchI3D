@@ -19,6 +19,9 @@ export type MaterialSource = "vision_estimate" | "invoice" | "user_input" | "def
 
 export type CardinalDirection = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
 
+/** Classe d'inertie thermique simplifiee (leger/moyen/lourd) - cf backend/app/thermal_engine/inertia.py. */
+export type ThermalInertiaClass = "light" | "medium" | "heavy";
+
 export interface Opening {
   id: string;
   type: "window" | "door";
@@ -109,4 +112,5 @@ export interface BuildingModel {
   altitudeM: number | null;
   northOffsetDeg: number;
   solarInstallations: SolarInstallation[];
+  thermalInertiaClass: ThermalInertiaClass | null;
 }

@@ -26,6 +26,14 @@ GLAZING_OPTIONS = [
     ("triple", "Triple vitrage"),
 ]
 
+# Facteur secondaire QUALITATIF d'inertie thermique (cf app/thermal_engine/inertia.py) - a ne
+# jamais confondre avec le facteur structurel norme (parois), calcule automatiquement.
+HEAVY_THERMAL_MASS_OPTIONS = [
+    ("none", "Aucun / peu d'elements massifs"),
+    ("some", "Quelques elements (ex: une cheminee ou un poele en pierre/beton)"),
+    ("significant", "Beaucoup d'elements massifs (cheminee en pierre, poele de masse, chape beton apparente, mobilier massif en bois...)"),
+]
+
 
 def get_next_question(building: BuildingModel, answers: dict[str, str]) -> Question | None:
     for floor in building.floors:
@@ -78,6 +86,23 @@ def get_next_question(building: BuildingModel, answers: dict[str, str]) -> Quest
             options=[QuestionOption(value=v, label=label) for v, label in HEATING_OPTIONS],
         )
 
+    if "building:heavy_thermal_mass" not in answers:
+        return Question(
+            id="q_heavy_thermal_mass",
+            field="building:heavy_thermal_mass",
+            text=(
+                "Ton logement contient-il des elements massifs importants (cheminee en pierre, "
+                "poele de masse, chape beton apparente, beaucoup de mobilier massif en bois) ? "
+                "Cette info affine legerement la classe d'inertie thermique calculee automatiquement "
+                "a partir des parois - elle reste indicative, contrairement aux parois qui sont le "
+                "seul facteur reellement pris en compte par les methodes reglementaires."
+            ),
+            type="single_choice",
+            options=[
+                QuestionOption(value=v, label=label) for v, label in HEAVY_THERMAL_MASS_OPTIONS
+            ],
+        )
+
     return None
 
 
@@ -102,7 +127,7 @@ def apply_answer(building: BuildingModel, field: str, value: str) -> None:
             wall.openings.append(Opening(type="window", glazing_type=value, uw_value=uw))
         return
 
-    if field == "building:heating_type":
+    if field in ("building:heating_type", "building:heavy_thermal_mass"):
         return  # stocke uniquement dans questionnaire_answers (cf router), pas de champ dedie V1
 
     raise ValueError(f"Champ de questionnaire non reconnu : {field}")

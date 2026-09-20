@@ -1,0 +1,34 @@
+{
+  "_comment": "Classe d'inertie thermique simplifiee a 3 niveaux (leger/moyen/lourd), inspiree de l'approche RE2020 (classes normees Th-I bien plus fines - tres legere a tres lourde, avec un Cm en J/m2.K par zone). Ici, on derive une classe indicative a partir de la masse surfacique approximative des materiaux/typologies de parois EXPOSES cote interieur (seul facteur reellement norme). PAS une methode Th-I certifiee - un degrossissage V1.",
+  "construction_type_weights": {
+    "_comment": "Poids par defaut d'une paroi exterieure, selon sa typologie (utilise quand aucune couche de materiau precise n'est renseignee sur la paroi). ITE = masse structurelle dense exposee cote interieur (lourd) ; ITI/ossature bois = masse dense isolee de l'interieur ou absente (leger).",
+    "wood_frame": "light",
+    "ite": "heavy",
+    "monomur": "medium",
+    "parpaing_iti": "light",
+    "brick": "heavy",
+    "stone": "heavy",
+    "unknown": "medium"
+  },
+  "material_weights": {
+    "_comment": "Poids par materiau (reutilise les cles de materials.json) quand une MaterialLayer precise est renseignee (vision/facture/saisie utilisateur) sur une paroi ou un plancher.",
+    "wood": "light",
+    "glass_wool": "light",
+    "rock_wool": "light",
+    "wood_fiber": "light",
+    "cellulose_wadding": "light",
+    "eps": "light",
+    "xps": "light",
+    "pir": "light",
+    "cellular_concrete": "medium",
+    "terracotta_monomur": "medium",
+    "concrete_block": "heavy",
+    "traditional_brick": "heavy",
+    "stone": "heavy"
+  },
+  "class_thresholds": {
+    "_comment": "Score moyen pondere par surface (light=1, medium=2, heavy=3) -> classe retenue.",
+    "light_max": 1.66,
+    "medium_max": 2.33
+  }
+}

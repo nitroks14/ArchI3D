@@ -10,6 +10,7 @@ scenario d'occupation RE2020). Toutes les hypotheses de calcul sont listees dans
 """
 from app.climate.factory import get_climate_data_provider
 from app.shared.schemas import BuildingModel, Room, Wall
+from app.thermal_engine.inertia import compute_thermal_inertia
 from app.thermal_engine.reference_data_loader import (
     load_construction_types,
     load_glazing,
@@ -107,8 +108,16 @@ def _resolve_dju(building: BuildingModel) -> tuple[float, str]:
     return summary.estimated_dju_base18, summary.data_source
 
 
-def compute_thermal_report(building: BuildingModel) -> dict:
+def compute_thermal_report(
+    building: BuildingModel,
+    heavy_mass_questionnaire_hint: str | None = None,
+    heavy_mass_vision_hints: list[str] | None = None,
+) -> dict:
     dju, dju_source = _resolve_dju(building)
+    inertia_class, inertia_notes = compute_thermal_inertia(
+        building, heavy_mass_questionnaire_hint, heavy_mass_vision_hints
+    )
+    building.thermal_inertia_class = inertia_class
 
     totals = {
         "floor_area_m2": 0.0,
@@ -156,6 +165,7 @@ def compute_thermal_report(building: BuildingModel) -> dict:
         "estimated_kwh_per_m2_per_year": (
             round(estimated_kwh_per_m2, 0) if estimated_kwh_per_m2 else None
         ),
+        "thermal_inertia_class": inertia_class,
         "assumptions": [
             "Valeurs indicatives de degrossissage - PAS une etude thermique reglementaire (pas de methode Th-BCE/RE2020 complete).",
             f"Degres-jours unifies (DJU) = {dju:.0f}, source : {dju_source}.",
@@ -163,5 +173,6 @@ def compute_thermal_report(building: BuildingModel) -> dict:
             f"Plancher bas par defaut U={DEFAULT_FLOOR_U} W/m2.K et toiture par defaut U={DEFAULT_ROOF_U} W/m2.K si non renseignes via facture/questionnaire.",
             f"Poste ECS + auxiliaires + eclairage forfaitise a {OTHER_USES_KWH_PER_M2} kWh/m2/an.",
             "Ubat approxime en supposant une surface d'enveloppe totale ~= 3x la surface au sol (murs+plancher+toiture).",
+            *inertia_notes,
         ],
     }

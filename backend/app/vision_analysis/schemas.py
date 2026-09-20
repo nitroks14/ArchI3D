@@ -22,6 +22,10 @@ class PhotoAnalysisResult(CamelModel):
     # photographiee. Non rattache automatiquement a une Wall specifique en V1 (les photos ne sont
     # pas encore associees a une paroi precise, seulement a une piece) - affinage V2.
     suggested_cardinal_orientation: str | None = None
+    # Indice QUALITATIF pour la classe d'inertie thermique (cf app/thermal_engine/inertia.py) -
+    # ex: ["cheminee en pierre", "chape beton apparente"]. Facteur secondaire non norme, distinct
+    # du calcul structurel officiel base sur les parois.
+    heavy_thermal_mass_elements_detected: list[str] = []
 
 
 class AerialImageAnalysisResult(CamelModel):

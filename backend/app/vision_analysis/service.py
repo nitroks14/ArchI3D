@@ -19,6 +19,7 @@ Reponds avec un objet JSON de la forme exacte :
   "suggested_room_type": "kitchen|bedroom|living_room|bathroom|hallway|garage|other|null",
   "suggested_room_name": "nom de piece propose en francais, ou null si photo exterieure",
   "suggested_cardinal_orientation": "N|NE|E|SE|S|SW|W|NW|null",
+  "heavy_thermal_mass_elements_detected": ["elements massifs visibles pouvant indiquer une forte inertie thermique, ex: cheminee en pierre, poele de masse, chape beton apparente, mobilier massif en bois important - liste vide si aucun"],
   "confidence": "faible|moyenne|elevee"
 }
 Si une information n'est pas visible, laisse une liste vide ou "indeterminee"/null. Ne fais pas

@@ -28,6 +28,8 @@ MaterialSource = Literal["vision_estimate", "invoice", "user_input", "default"]
 
 CardinalDirection = Literal["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 
+ThermalInertiaClass = Literal["light", "medium", "heavy"]
+
 
 class Opening(CamelModel):
     """Ouverture percee dans une paroi : fenetre ou porte."""
@@ -136,6 +138,11 @@ class BuildingModel(CamelModel):
     generated_at: str | None = None
     glb_url: str | None = None  # export 3D (boites simplifiees) genere pour le viewer Three.js
     solar_installations: list[SolarInstallation] = Field(default_factory=list)
+
+    # Classe d'inertie thermique simplifiee (leger/moyen/lourd), calculee automatiquement a partir
+    # des materiaux/typologies des parois exposees (cf app/thermal_engine/inertia.py) a chaque
+    # calcul du rapport thermique. Null tant qu'aucun rapport n'a ete calcule.
+    thermal_inertia_class: ThermalInertiaClass | None = None
 
     # --- Geolocalisation (cf app/geolocation) ---
     latitude: float | None = None

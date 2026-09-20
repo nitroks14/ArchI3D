@@ -24,3 +24,8 @@ def load_thermal_bridges() -> dict:
 @lru_cache
 def load_construction_types() -> dict:
     return json.loads((_DATA_DIR / "construction_types.json").read_text())
+
+
+@lru_cache
+def load_thermal_inertia() -> dict:
+    return json.loads((_DATA_DIR / "thermal_inertia.json").read_text())

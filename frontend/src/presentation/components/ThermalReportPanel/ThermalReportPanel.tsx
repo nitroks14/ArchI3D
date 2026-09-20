@@ -1,3 +1,4 @@
+import type { ThermalInertiaClass } from "@/domain/model/Building";
 import type { ThermalReport } from "@/domain/model/Project";
 import { Button } from "@/presentation/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/presentation/components/ui/card";
@@ -6,6 +7,12 @@ interface ThermalReportPanelProps {
   report: ThermalReport | null;
   onCompute: () => void;
 }
+
+const INERTIA_LABELS: Record<ThermalInertiaClass, string> = {
+  light: "Legere",
+  medium: "Moyenne",
+  heavy: "Lourde",
+};
 
 export function ThermalReportPanel({ report, onCompute }: ThermalReportPanelProps) {
   return (
@@ -32,6 +39,10 @@ export function ThermalReportPanel({ report, onCompute }: ThermalReportPanelProp
               </li>
               <li className="rounded-md bg-secondary p-2 text-sm">
                 <strong>Surface prise en compte</strong> : {report.floorAreaM2} m²
+              </li>
+              <li className="rounded-md bg-secondary p-2 text-sm">
+                <strong>Inertie thermique</strong> :{" "}
+                {report.thermalInertiaClass ? INERTIA_LABELS[report.thermalInertiaClass] : "?"}
               </li>
             </ul>
 
