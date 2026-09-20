@@ -4,3 +4,10 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
+
+[tool.pytest.ini_options]
+# Sans ceci, `pytest` (invoque sans -m depuis backend/, cf .github/workflows/backend-ci.yml) ne
+# trouve pas le package "app" au moment de collecter les tests (mode d'import par defaut de
+# pytest : seul le dossier tests/ est ajoute a sys.path, pas la racine backend/).
+pythonpath = ["."]
+testpaths = ["tests"]
