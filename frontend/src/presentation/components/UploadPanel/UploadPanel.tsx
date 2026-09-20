@@ -96,7 +96,12 @@ export function UploadPanel({
               </SelectContent>
             </Select>
           </div>
-          <DropZone label="Photo" accept="image/*" onFile={(file) => onUploadPhoto(file, photoKind)} />
+          <DropZone
+            label="Photo"
+            accept="image/*"
+            capture="environment"
+            onFile={(file) => onUploadPhoto(file, photoKind)}
+          />
           <p className="text-sm text-muted-foreground">{project.photos.length} photo(s) recue(s).</p>
         </div>
 
@@ -117,10 +122,13 @@ function DropZone({
   label,
   accept,
   onFile,
+  capture,
 }: {
   label: string;
   accept: string;
   onFile: (file: File) => void;
+  /** "environment" ouvre directement la camera arriere sur mobile (prise de vue in situ). */
+  capture?: "environment" | "user";
 }) {
   const [dragging, setDragging] = useState(false);
 
@@ -146,7 +154,8 @@ function DropZone({
         <input
           type="file"
           accept={accept}
-          className="text-sm file:mr-2 file:rounded-md file:border-0 file:bg-secondary file:px-2 file:py-1 file:text-secondary-foreground"
+          capture={capture}
+          className="max-w-full text-sm file:mr-2 file:rounded-md file:border-0 file:bg-secondary file:px-2 file:py-1 file:text-secondary-foreground"
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) onFile(file);

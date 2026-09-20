@@ -25,6 +25,12 @@ boto3==1.35.24
 google-generativeai==0.8.3
 anthropic==0.34.2
 
+# --- Authentification (Google OAuth 2.0 + sessions JWT httpOnly) ---
+PyJWT==2.9.0
+google-auth==2.35.0
+requests==2.32.3
+cryptography==43.0.1
+
 # --- HTTP client (geocoding, climat) + Dev/test ---
 pytest==8.3.3
 ruff==0.6.9

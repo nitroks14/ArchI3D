@@ -21,6 +21,7 @@ implementation exhaustive.
 - [Stockage des fichiers](#stockage-des-fichiers)
 - [Geolocalisation, orientation et donnees climatiques](#geolocalisation-orientation-et-donnees-climatiques)
 - [Bibliotheque de valeurs thermiques par defaut](#bibliotheque-de-valeurs-thermiques-par-defaut)
+- [Authentification (Google OAuth)](#authentification-google-oauth)
 - [Lancer le projet en local](#lancer-le-projet-en-local)
 - [Deploiement](#deploiement)
 - [Limitations connues et compromis V1](#limitations-connues-et-compromis-v1)
@@ -47,9 +48,11 @@ OpenCV, generation de mesh, calcul thermique).
 
 ```
 backend/app/
+├── auth/                 authentification Google OAuth 2.0 + sessions JWT httpOnly
 ├── ingestion/            upload direct (plan, image aerienne, photos, factures)
 ├── vision_analysis/      analyse IA des photos (materiaux, ouvertures, isolation, equipements)
 ├── model_generation/     heuristique plan 2D -> pieces -> export GLB (Three.js)
+├── annexes/              agregat Annex (abris, garages, dependances) - independant du Building
 ├── material_invoices/    OCR + extraction IA des factures/fiches techniques materiaux
 ├── thermal_engine/       moteur de calcul simplifie + bibliotheque de valeurs par defaut
 ├── questionnaire/        moteur a regles du questionnaire progressif
@@ -58,7 +61,8 @@ backend/app/
 ├── ai_provider/          abstraction du fournisseur IA (Gemini par defaut, Claude optionnel)
 ├── storage/              abstraction de stockage fichiers (local par defaut, Cloudflare R2)
 ├── ocr/                  extraction de texte (labels de plan, factures)
-├── projects/             etat persistant d'un projet (JSON sur disque, cf compromis V1)
+├── projects/             etat persistant d'un projet (JSON sur disque, cf compromis V1) +
+│                         dependance get_owned_project_state (controle d'acces, cf Authentification)
 └── shared/                schemas Pydantic partages (modele hierarchique du batiment)
 ```
 
@@ -66,10 +70,10 @@ backend/app/
 
 ```
 frontend/src/
-├── domain/          entites (Building, Room, Wall...), interfaces repository
+├── domain/          entites (Building, Room, Wall, User...), interfaces repository
 ├── application/     use-cases (orchestrent les repositories, aucun fetch direct ici)
 ├── infrastructure/  implementations HTTP des repositories (ApiClient + Http*Repository)
-├── presentation/    pages, composants React, hooks UI
+├── presentation/    pages (LoginPage, ProjectListPage, ProjectPage), composants React, hooks UI
 └── shared/           config (import.meta.env), types communs
 ```
 
@@ -170,13 +174,25 @@ passent par une abstraction `AIProvider` (`backend/app/ai_provider/base.py`) ave
 implementations :
 
 - **Gemini (par defaut, gratuit)** - `GeminiProvider`, via `google-generativeai`, modele
-  `gemini-2.0-flash`. Cree une cle API **gratuite** sur https://ai.google.dev et renseigne-la
-  dans `GEMINI_API_KEY` (`backend/.env`).
+  `gemini-2.0-flash`.
 - **Claude (optionnel, payant)** - `ClaudeProvider`, via `anthropic`, active en mettant
   `AI_PROVIDER=claude` et `ANTHROPIC_API_KEY` dans `.env`.
 
 Le choix se fait via la variable d'environnement `AI_PROVIDER` (`backend/app/ai_provider/factory.py`).
 Aucune cle n'est hardcodee dans le code - tout passe par `.env` (voir `backend/.env.example`).
+
+**Cle Gemini par utilisateur** : chaque utilisateur connecte peut renseigner sa propre cle API
+Gemini **gratuite** (creee sur https://ai.google.dev) dans la page **Parametres** de l'app
+(`PUT/DELETE /auth/me/gemini-key`). Elle est chiffree au repos (Fernet, `SECRETS_ENCRYPTION_KEY`)
+et **jamais renvoyee en clair** au frontend (seul un apercu masque type `AIza...xyz` est affiche).
+`GeminiProvider` utilise en priorite la cle de l'utilisateur courant, avec repli sur la variable
+d'environnement globale `GEMINI_API_KEY` si absente - pratique pour le dev local, mais en
+production chaque utilisateur doit normalement creer et renseigner la sienne (voir
+`app/ai_provider/factory.py` pour la logique de resolution, et sa docstring pour une limitation
+connue du SDK `google-generativeai` sous forte charge concurrente multi-utilisateurs).
+On a deliberement **evite d'elargir les scopes OAuth Google** pour tenter de provisionner cette
+cle automatiquement : cela necessiterait une verification de l'application par Google, un mauvais
+rapport effort/benefice pour un usage personnel/demo.
 
 ## Stockage des fichiers
 
@@ -192,6 +208,15 @@ Abstraction `StorageBackend` (`backend/app/storage/base.py`) avec deux implement
 > Attention : en production, si le backend tourne sur plusieurs instances/redemarrages sans
 > volume persistant, `STORAGE_BACKEND=local` perd les fichiers a chaque redeploiement - passer
 > a R2 est recommande des la sortie du cadre "demo locale".
+
+**Arborescence par projet** : toute cle de stockage suit la convention
+`{ownerId}/{projectId}/{plans|photos|aerial|invoices|model}/...` (`build_project_key`,
+`backend/app/storage/base.py`), garantissant une isolation physique des fichiers par utilisateur
+et par projet des le stockage. Les 5 sous-dossiers sont crees automatiquement des la creation du
+projet (`ProjectStore.create` appelle `StorageBackend.ensure_project_structure`) - concretement
+pour `LocalDiskStorage` (creation reelle des repertoires) ; no-op pour `R2Storage` puisqu'un
+stockage objet S3-compatible n'a pas de vraie notion de dossier vide, le prefixe apparait des le
+premier fichier uploade dans cette "arborescence".
 
 ## Geolocalisation, orientation et donnees climatiques
 
@@ -231,6 +256,72 @@ source reglementaire certifiee** (pas de connexion a une base Th-Bat/RE2020 offi
 Le rapport thermique retourne systematiquement un champ `assumptions` listant explicitement
 toutes les hypotheses de calcul utilisees pour rester transparent.
 
+## Authentification (Google OAuth)
+
+Les projets contiennent des donnees sensibles (photos interieures, factures) : l'acces est
+**obligatoirement authentifie**. Flow OAuth 2.0 "Authorization Code" standard avec Google,
+implemente dans `backend/app/auth/` :
+
+- `GET /auth/google/login` - redirige vers l'ecran de consentement Google (avec un `state`
+  anti-CSRF pose en cookie court-terme).
+- `GET /auth/google/callback` - echange le code d'autorisation contre des tokens, **verifie
+  serveur** l'ID token Google (signature, emetteur, expiration, et surtout `audience` = notre
+  propre `GOOGLE_CLIENT_ID`, via la bibliotheque officielle `google-auth` - pas de confiance
+  aveugle dans le contenu du token), cree ou retrouve l'utilisateur (agregat `User` : id, email,
+  googleSub, displayName, createdAt - persiste dans `storage/_users/users.json`), pose une session
+  applicative puis redirige vers `FRONTEND_URL`.
+- `POST /auth/logout` - efface la session.
+- `GET /auth/me` - utilisateur courant (401 si non authentifie).
+
+**Session** : JWT signe (HS256, `SESSION_SECRET`) pose en cookie **httpOnly** (inaccessible en
+JavaScript). Le token Google lui-meme n'est **jamais** stocke ni renvoye au frontend - uniquement
+notre propre session. Le frontend appelle l'API avec `credentials: "include"` sur chaque requete
+pour que ce cookie soit envoye/recu.
+
+**Controle d'acces** : chaque `Project` porte un champ `ownerId`. Tous les endpoints qui operent
+sur un projet existant passent par la dependance FastAPI partagee
+`app.projects.dependencies.get_owned_project_state`, qui verifie l'authentification (401 si
+absente) PUIS la propriete (`403` si le projet appartient a quelqu'un d'autre). `GET /projects`
+ne retourne que les projets du proprietaire courant. Aucun endpoint de donnees de projet n'est
+accessible sans session valide.
+
+### Etape par etape : creer des identifiants OAuth Google (gratuit)
+
+A faire toi-meme sur https://console.cloud.google.com (l'agent ne peut pas creer ces identifiants
+a ta place) :
+
+1. Cree un projet Google Cloud (ou reutilise un projet existant).
+2. Menu **APIs & Services > Ecran de consentement OAuth** : type "External" (sauf si tu as un
+   Google Workspace), renseigne un nom d'app + email de contact. En mode "Test", ajoute ton propre
+   compte Google comme utilisateur de test (suffisant pour le developpement, pas besoin de
+   validation Google pour un usage personnel/interne).
+3. Menu **APIs & Services > Identifiants > Creer des identifiants > ID client OAuth**.
+4. Type d'application : **Application Web**.
+5. **Origines JavaScript autorisees** :
+   - Dev local : `http://localhost:5173`
+   - Production : `https://<ton-user>.github.io`
+6. **URI de redirection autorisees** (doit correspondre EXACTEMENT a `GOOGLE_REDIRECT_URI`) :
+   - Dev local : `http://localhost:8000/auth/google/callback`
+   - Production : `https://<ton-backend>.onrender.com/auth/google/callback` (ou l'URL reelle de
+     ton backend deploye - Render, Fly.io...)
+7. Recupere le **Client ID** et le **Client Secret** generes, renseigne-les dans `backend/.env`
+   (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) - ne jamais les commiter.
+8. Genere un `SESSION_SECRET` aleatoire :
+   `python3 -c "import secrets; print(secrets.token_urlsafe(48))"`
+9. Genere un `SECRETS_ENCRYPTION_KEY` (utilise pour chiffrer les cles Gemini personnelles) :
+   `python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`
+
+### Configuration cookie selon l'environnement
+
+| Environnement | `SESSION_COOKIE_SAMESITE` | `SESSION_COOKIE_SECURE` | Pourquoi |
+|---|---|---|---|
+| Dev local (frontend/backend sur `localhost`, ports differents) | `lax` | `false` | Meme "site" au sens des cookies (le port ne compte pas) - `Lax` suffit, `Secure` impossible sans HTTPS local. |
+| Production (frontend GitHub Pages, backend sur un autre domaine) | `none` | `true` | Domaines differents = cross-site : `SameSite=None` est **obligatoire** pour que le cookie parte en fetch cross-origine, et le navigateur exige `Secure` (HTTPS) des que `SameSite=None` est utilise. |
+
+Ne jamais deployer en production avec `SESSION_COOKIE_SAMESITE=none` et `SESSION_COOKIE_SECURE=false`
+: le cookie serait silencieusement rejete par le navigateur (connexion qui semble "ne pas
+persister").
+
 ## Lancer le projet en local
 
 ### Backend
@@ -241,6 +332,8 @@ python3 -m venv .venv && source .venv/bin/activate   # ou l'equivalent de votre 
 pip install -r requirements.txt
 cp .env.example .env
 # Editer .env : renseigner GEMINI_API_KEY (cle gratuite sur https://ai.google.dev)
+# ET les identifiants Google OAuth + SESSION_SECRET (cf section Authentification ci-dessus) -
+# sans ca, l'app reste bloquee sur l'ecran de connexion.
 uvicorn app.main:app --reload
 ```
 
@@ -310,9 +403,19 @@ Cloudflare R2 pour eviter toute perte de fichiers entre redeploiements.
 - **Detection automatique des annexes non implementee** - flux manuel uniquement en V1 (ajout via
   `AnnexPanel`). Le point d'integration vision IA existe (meme principe que la detection des
   panneaux solaires) mais n'est pas appele automatiquement.
-- **Pas d'authentification/multi-utilisateur** - hors perimetre V1.
 - **Environnement de dev sans pip/venv/internet verifie** - le backend n'a pas pu etre execute
   reellement pendant ce scaffolding (cf section "Lancer le projet en local").
+- **UX mobile/tablette non testee sur device reel** - le layout (Tailwind, `flex-wrap`, grilles
+  responsives) a ete revu pour eviter le scroll horizontal et l'upload photo utilise
+  `capture="environment"` (ouverture directe de la camera arriere), mais aucun test manuel sur un
+  vrai smartphone/tablette n'a pu etre fait dans cet environnement de scaffolding. A verifier en
+  priorite (tailles de cible tactile des boutons `shadcn/ui` par defaut - 36px, un peu sous les
+  44-48px recommandes - gestes tactiles du viewer 3D `OrbitControls`, clavier virtuel qui masque
+  des champs de formulaire...).
+- **Limitation connue du SDK Gemini sous charge concurrente multi-utilisateurs** - `genai.configure()`
+  est global au process Python, pas par-requete ; deux utilisateurs avec des cles differentes
+  faisant une requete simultanee peuvent en theorie interferer (cf docstring
+  `backend/app/ai_provider/factory.py`). Sans consequence pour un usage personnel/demo V1.
 
 ## Roadmap V2
 

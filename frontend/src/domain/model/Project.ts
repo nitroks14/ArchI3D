@@ -48,6 +48,7 @@ export interface AerialImageAnalysis {
 
 export interface ProjectState {
   id: string;
+  ownerId: string;
   createdAt: string;
   aerialImage: UploadedFile | null;
   plans: PlanFile[];

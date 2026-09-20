@@ -10,4 +10,8 @@ export class HttpProjectRepository implements ProjectRepository {
   getProject(projectId: string): Promise<ProjectState> {
     return apiClient.get<ProjectState>(`/projects/${projectId}`);
   }
+
+  listProjects(): Promise<ProjectState[]> {
+    return apiClient.get<ProjectState[]>("/projects");
+  }
 }

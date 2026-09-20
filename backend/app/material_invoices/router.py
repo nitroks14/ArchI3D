@@ -1,7 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth.dependencies import get_current_user
+from app.auth.schemas import User
 from app.material_invoices.schemas import ExtractedMaterialResult
 from app.material_invoices.service import extract_material_characteristics, extract_text
+from app.projects.dependencies import get_owned_project_state
+from app.projects.models import ProjectState
 from app.projects.store import get_project_store
 from app.shared.base import CamelModel
 from app.storage.factory import get_storage_backend
@@ -14,39 +18,40 @@ class LinkInvoiceRequest(CamelModel):
     wall_id: str
 
 
-def _get_state_and_invoice(project_id: str, invoice_id: str):
-    store = get_project_store()
-    try:
-        state = store.get(project_id)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+def _get_invoice(state: ProjectState, invoice_id: str):
     invoice = next((i for i in state.invoices if i.id == invoice_id), None)
     if invoice is None:
         raise HTTPException(status_code=404, detail="Facture introuvable")
-    return store, state, invoice
+    return invoice
 
 
 @router.post("/{project_id}/invoices/{invoice_id}/extract", response_model=ExtractedMaterialResult)
-def extract_invoice(project_id: str, invoice_id: str) -> ExtractedMaterialResult:
-    store, state, invoice = _get_state_and_invoice(project_id, invoice_id)
+def extract_invoice(
+    invoice_id: str,
+    state: ProjectState = Depends(get_owned_project_state),
+    current_user: User = Depends(get_current_user),
+) -> ExtractedMaterialResult:
+    invoice = _get_invoice(state, invoice_id)
 
     file_bytes = get_storage_backend().read(invoice.storage_key)
     ocr_text = extract_text(file_bytes, invoice.content_type)
     invoice.ocr_text = ocr_text
 
     try:
-        extracted = extract_material_characteristics(ocr_text)
+        extracted = extract_material_characteristics(ocr_text, current_user)
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     invoice.extracted = extracted.model_dump(by_alias=True)
-    store.save(state)
+    get_project_store().save(state)
     return extracted
 
 
 @router.post("/{project_id}/invoices/{invoice_id}/link")
-def link_invoice(project_id: str, invoice_id: str, payload: LinkInvoiceRequest) -> dict:
-    store, state, invoice = _get_state_and_invoice(project_id, invoice_id)
+def link_invoice(
+    invoice_id: str, payload: LinkInvoiceRequest, state: ProjectState = Depends(get_owned_project_state)
+) -> dict:
+    invoice = _get_invoice(state, invoice_id)
     if invoice.extracted is None:
         raise HTTPException(status_code=400, detail="Lance d'abord l'extraction de la facture")
     if state.building_model is None:
@@ -76,5 +81,5 @@ def link_invoice(project_id: str, invoice_id: str, payload: LinkInvoiceRequest) 
     )
     invoice.linked_room_id = payload.room_id
     invoice.linked_wall_id = payload.wall_id
-    store.save(state)
+    get_project_store().save(state)
     return {"wallId": wall.id, "layers": [layer.model_dump(by_alias=True) for layer in wall.layers]}

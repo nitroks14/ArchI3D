@@ -11,6 +11,7 @@ from app.model_generation.plan_heuristic import detect_rooms
 from app.model_generation.room_naming import guess_room_from_ocr_text
 from app.projects.models import ProjectState
 from app.shared.schemas import BuildingModel, Floor, Room, RoomBoundingBox, Wall
+from app.storage.base import build_project_key
 from app.storage.factory import get_storage_backend
 
 
@@ -74,12 +75,12 @@ def generate_building_model(
     building.floors = [f for f in building.floors if f.name != floor_label] + [floor]
     building.generated_at = datetime.now(UTC).isoformat()
 
-    building.glb_url = regenerate_glb(state.id, building, state.annexes)
+    building.glb_url = regenerate_glb(state, building, state.annexes)
 
     return building
 
 
-def regenerate_glb(project_id: str, building: BuildingModel, annexes: list[Annex]) -> str:
+def regenerate_glb(state: ProjectState, building: BuildingModel, annexes: list[Annex]) -> str:
     """
     Reconstruit et sauvegarde l'export GLB (batiment + annexes de la parcelle). Reutilise a
     chaque generation/regeneration du modele de batiment ET a chaque creation/modification/
@@ -87,5 +88,5 @@ def regenerate_glb(project_id: str, building: BuildingModel, annexes: list[Annex
     jour sans etape manuelle supplementaire.
     """
     glb_bytes = build_glb(building, annexes)
-    glb_key = f"{project_id}/model/building.glb"
+    glb_key = build_project_key(state.owner_id, state.id, "model", "building.glb")
     return get_storage_backend().save(glb_key, glb_bytes, "model/gltf-binary")

@@ -3,10 +3,12 @@ Endpoints de l'agregat Annex (abri de jardin, garage, dependance...) : creation/
 jour/suppression, independants du Building principal. Chaque mutation regenere l'export GLB pour
 que l'annexe apparaisse immediatement a cote du batiment dans le viewer 3D.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.annexes.schemas import Annex, AnnexType
 from app.model_generation.service import regenerate_glb
+from app.projects.dependencies import get_owned_project_state
+from app.projects.models import ProjectState
 from app.projects.store import get_project_store
 from app.shared.base import CamelModel
 
@@ -36,41 +38,34 @@ class UpdateAnnexRequest(CamelModel):
     is_conditioned: bool | None = None
 
 
-def _get_state(project_id: str):
-    try:
-        return get_project_store().get(project_id)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-
-
-def _sync_glb(state) -> None:
+def _sync_glb(state: ProjectState) -> None:
     """Regenere l'export GLB si un modele de batiment existe deja pour ce projet."""
     if state.building_model is not None:
-        state.building_model.glb_url = regenerate_glb(state.id, state.building_model, state.annexes)
+        state.building_model.glb_url = regenerate_glb(state, state.building_model, state.annexes)
 
 
 @router.get("", response_model=list[Annex])
-def list_annexes(project_id: str) -> list[Annex]:
-    return _get_state(project_id).annexes
+def list_annexes(state: ProjectState = Depends(get_owned_project_state)) -> list[Annex]:
+    return state.annexes
 
 
 @router.post("", response_model=Annex, status_code=201)
-def create_annex(project_id: str, payload: CreateAnnexRequest) -> Annex:
-    store = get_project_store()
-    state = _get_state(project_id)
-
-    annex = Annex(project_id=project_id, **payload.model_dump())
+def create_annex(
+    payload: CreateAnnexRequest, state: ProjectState = Depends(get_owned_project_state)
+) -> Annex:
+    annex = Annex(project_id=state.id, **payload.model_dump())
     state.annexes.append(annex)
     _sync_glb(state)
-    store.save(state)
+    get_project_store().save(state)
     return annex
 
 
 @router.patch("/{annex_id}", response_model=Annex)
-def update_annex(project_id: str, annex_id: str, payload: UpdateAnnexRequest) -> Annex:
-    store = get_project_store()
-    state = _get_state(project_id)
-
+def update_annex(
+    annex_id: str,
+    payload: UpdateAnnexRequest,
+    state: ProjectState = Depends(get_owned_project_state),
+) -> Annex:
     annex = next((a for a in state.annexes if a.id == annex_id), None)
     if annex is None:
         raise HTTPException(status_code=404, detail="Annexe introuvable")
@@ -80,18 +75,15 @@ def update_annex(project_id: str, annex_id: str, payload: UpdateAnnexRequest) ->
         setattr(annex, field, value)
 
     _sync_glb(state)
-    store.save(state)
+    get_project_store().save(state)
     return annex
 
 
 @router.delete("/{annex_id}", status_code=204)
-def delete_annex(project_id: str, annex_id: str) -> None:
-    store = get_project_store()
-    state = _get_state(project_id)
-
+def delete_annex(annex_id: str, state: ProjectState = Depends(get_owned_project_state)) -> None:
     if not any(a.id == annex_id for a in state.annexes):
         raise HTTPException(status_code=404, detail="Annexe introuvable")
     state.annexes = [a for a in state.annexes if a.id != annex_id]
 
     _sync_glb(state)
-    store.save(state)
+    get_project_store().save(state)

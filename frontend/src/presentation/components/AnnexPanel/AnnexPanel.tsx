@@ -58,7 +58,7 @@ export function AnnexPanel({ annexes, onCreate, onRemove }: AnnexPanelProps) {
             {annexes.map((annex) => (
               <li
                 key={annex.id}
-                className="flex items-center justify-between rounded-md bg-secondary px-3 py-1.5 text-sm"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-secondary px-3 py-1.5 text-sm"
               >
                 <span>
                   {annex.label} ({ANNEX_TYPE_LABELS[annex.type]}) - {annex.widthM}×{annex.depthM} m,

@@ -6,8 +6,14 @@ import { QuestionnairePanel } from "@/presentation/components/QuestionnairePanel
 import { ThermalReportPanel } from "@/presentation/components/ThermalReportPanel/ThermalReportPanel";
 import { AnnexPanel } from "@/presentation/components/AnnexPanel/AnnexPanel";
 import { Badge } from "@/presentation/components/ui/badge";
+import { Button } from "@/presentation/components/ui/button";
 
-export function ProjectPage() {
+interface ProjectPageProps {
+  projectId: string;
+  onBack: () => void;
+}
+
+export function ProjectPage({ projectId, onBack }: ProjectPageProps) {
   const {
     project,
     questionnaire,
@@ -26,15 +32,18 @@ export function ProjectPage() {
     analyzeAerial,
     createAnnex,
     removeAnnex,
-  } = useProject();
+  } = useProject(projectId);
 
   if (!project) {
-    return <p className="p-8 text-center text-muted-foreground">Initialisation du projet...</p>;
+    return <p className="p-8 text-center text-muted-foreground">Chargement du projet...</p>;
   }
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-5 p-4 sm:p-8">
       <header className="flex flex-wrap items-center gap-2">
+        <Button variant="ghost" size="sm" onClick={onBack}>
+          ← Mes projets
+        </Button>
         <h1 className="text-2xl font-bold">ArchI3D</h1>
         <p className="text-sm text-muted-foreground">Projet {project.id}</p>
         {busy && <Badge variant="secondary">En cours...</Badge>}

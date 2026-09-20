@@ -47,6 +47,7 @@ class MaterialInvoiceFile(UploadedFile):
 
 class ProjectState(CamelModel):
     id: str = Field(default_factory=lambda: _new_id("project"))
+    owner_id: str  # id du User proprietaire (cf app/auth) - tous les endpoints verifient ce champ
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     aerial_image: UploadedFile | None = None
     plans: list[PlanFile] = Field(default_factory=list)

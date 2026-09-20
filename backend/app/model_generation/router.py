@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
-
-from app.shared.base import CamelModel
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.model_generation.service import generate_building_model
+from app.projects.dependencies import get_owned_project_state
+from app.projects.models import ProjectState
 from app.projects.store import get_project_store
+from app.shared.base import CamelModel
 from app.shared.schemas import BuildingModel
 
 router = APIRouter(prefix="/projects", tags=["model-generation"])
@@ -18,13 +19,9 @@ class GenerateModelRequest(CamelModel):
 
 
 @router.post("/{project_id}/model/generate", response_model=BuildingModel)
-def generate_model(project_id: str, payload: GenerateModelRequest) -> BuildingModel:
-    store = get_project_store()
-    try:
-        state = store.get(project_id)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-
+def generate_model(
+    payload: GenerateModelRequest, state: ProjectState = Depends(get_owned_project_state)
+) -> BuildingModel:
     try:
         building = generate_building_model(
             state,
@@ -38,16 +35,12 @@ def generate_model(project_id: str, payload: GenerateModelRequest) -> BuildingMo
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     state.building_model = building
-    store.save(state)
+    get_project_store().save(state)
     return building
 
 
 @router.get("/{project_id}/model", response_model=BuildingModel)
-def get_model(project_id: str) -> BuildingModel:
-    try:
-        state = get_project_store().get(project_id)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+def get_model(state: ProjectState = Depends(get_owned_project_state)) -> BuildingModel:
     if state.building_model is None:
         raise HTTPException(status_code=404, detail="Aucun modele genere pour ce projet")
     return state.building_model

@@ -4,7 +4,6 @@ import type { GenerateModelParams } from "@/domain/repositories/ModelGenerationR
 import type { ProjectState } from "@/domain/model/Project";
 import type { QuestionnaireState } from "@/domain/model/Question";
 import type { ConstructionTypeCatalog } from "@/domain/model/ConstructionTypeCatalog";
-import { createProject } from "@/application/use-cases/CreateProject";
 import { uploadFiles } from "@/application/use-cases/UploadFiles";
 import { analyzeAerialImage, analyzePhoto } from "@/application/use-cases/AnalyzePhoto";
 import { generateBuildingModel } from "@/application/use-cases/GenerateBuildingModel";
@@ -39,7 +38,7 @@ const referenceRepo = new HttpReferenceDataRepository();
 const geolocationRepo = new HttpGeolocationRepository();
 const annexRepo = new HttpAnnexRepository();
 
-export function useProject() {
+export function useProject(projectId: string) {
   const [project, setProject] = useState<ProjectState | null>(null);
   const [questionnaire, setQuestionnaire] = useState<QuestionnaireState | null>(null);
   const [constructionCatalog, setConstructionCatalog] = useState<ConstructionTypeCatalog | null>(null);
@@ -68,13 +67,13 @@ export function useProject() {
 
   useEffect(() => {
     void runSafely(async () => {
-      const created = await createProject(projectRepo)();
-      setProject(created);
+      const loaded = await projectRepo.getProject(projectId);
+      setProject(loaded);
       const catalog = await fetchConstructionCatalog(referenceRepo)();
       setConstructionCatalog(catalog);
-      return created;
+      return loaded;
     });
-  }, [runSafely]);
+  }, [projectId, runSafely]);
 
   const refreshProject = useCallback(
     (projectId: string) => runSafely(() => projectRepo.getProject(projectId).then(setProject)),

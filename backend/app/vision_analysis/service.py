@@ -4,6 +4,7 @@ etat apparent de l'isolation, equipements visibles, suggestion de type/nom de pi
 Utilise le provider IA actif (Gemini par defaut, Claude en option - cf app/ai_provider).
 """
 from app.ai_provider.factory import get_ai_provider
+from app.auth.schemas import User
 from app.vision_analysis.schemas import AerialImageAnalysisResult, PhotoAnalysisResult
 
 ANALYSIS_INSTRUCTION = """
@@ -23,8 +24,8 @@ d'hypothese non fondee sur l'image.
 """
 
 
-def analyze_photo(image_bytes: bytes, mime_type: str) -> PhotoAnalysisResult:
-    raw = get_ai_provider().analyze_image(image_bytes, mime_type, ANALYSIS_INSTRUCTION)
+def analyze_photo(image_bytes: bytes, mime_type: str, user: User | None = None) -> PhotoAnalysisResult:
+    raw = get_ai_provider(user).analyze_image(image_bytes, mime_type, ANALYSIS_INSTRUCTION)
     return PhotoAnalysisResult.model_validate(raw)
 
 
@@ -43,12 +44,14 @@ solar_panels_detected doit etre false et les champs associes null.
 """
 
 
-def analyze_aerial_image(image_bytes: bytes, mime_type: str) -> AerialImageAnalysisResult:
+def analyze_aerial_image(
+    image_bytes: bytes, mime_type: str, user: User | None = None
+) -> AerialImageAnalysisResult:
     """
     Analyse dediee a l'image aerienne : forme de toiture + detection/position approximative des
     panneaux solaires existants (cf SolarInstallation, backend/app/shared/schemas.py). Point
     d'integration vision IA pour la detection automatique - la position precise par pan de toit
     et l'orientation/inclinaison restent a affiner en V2 (segmentation par facade/pan).
     """
-    raw = get_ai_provider().analyze_image(image_bytes, mime_type, AERIAL_ANALYSIS_INSTRUCTION)
+    raw = get_ai_provider(user).analyze_image(image_bytes, mime_type, AERIAL_ANALYSIS_INSTRUCTION)
     return AerialImageAnalysisResult.model_validate(raw)

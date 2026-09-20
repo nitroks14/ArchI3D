@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.annexes.router import router as annexes_router
+from app.auth.router import router as auth_router
 from app.core.config import get_settings
 from app.geolocation.router import router as geolocation_router
 from app.ingestion.router import router as ingestion_router
@@ -39,6 +40,7 @@ app.mount("/files", StaticFiles(directory=settings.storage_path, check_dir=False
 _reference_assets_dir = Path(__file__).parent / "thermal_engine" / "reference_data" / "assets"
 app.mount("/reference-assets", StaticFiles(directory=_reference_assets_dir), name="reference-assets")
 
+app.include_router(auth_router)
 app.include_router(ingestion_router)
 app.include_router(geolocation_router)
 app.include_router(annexes_router)

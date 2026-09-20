@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from app.storage.base import StorageBackend
+from app.storage.base import PROJECT_SUBFOLDERS, StorageBackend
 
 
 class LocalDiskStorage(StorageBackend):
@@ -29,3 +29,7 @@ class LocalDiskStorage(StorageBackend):
         path = self._resolve(key)
         if path.exists():
             path.unlink()
+
+    def ensure_project_structure(self, owner_id: str, project_id: str) -> None:
+        for category in PROJECT_SUBFOLDERS:
+            self._resolve(f"{owner_id}/{project_id}/{category}").mkdir(parents=True, exist_ok=True)
