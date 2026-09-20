@@ -5,6 +5,7 @@ Utilise le provider IA actif (Gemini par defaut, Claude en option - cf app/ai_pr
 """
 from app.ai_provider.factory import get_ai_provider
 from app.auth.schemas import User
+from app.shared.geo import cardinal_from_azimuth
 from app.vision_analysis.schemas import AerialImageAnalysisResult, PhotoAnalysisResult
 
 ANALYSIS_INSTRUCTION = """
@@ -17,15 +18,33 @@ Reponds avec un objet JSON de la forme exacte :
   "equipment": ["equipements visibles, ex: radiateur, chaudiere, VMC, poele a bois"],
   "suggested_room_type": "kitchen|bedroom|living_room|bathroom|hallway|garage|other|null",
   "suggested_room_name": "nom de piece propose en francais, ou null si photo exterieure",
+  "suggested_cardinal_orientation": "N|NE|E|SE|S|SW|W|NW|null",
   "confidence": "faible|moyenne|elevee"
 }
 Si une information n'est pas visible, laisse une liste vide ou "indeterminee"/null. Ne fais pas
 d'hypothese non fondee sur l'image.
 """
 
+COMPASS_HINT_TEMPLATE = (
+    "\n\nIndice supplementaire (a corroborer avec l'image, ne pas suivre aveuglement) : cette "
+    "photo exterieure a ete prise avec un cap boussole releve de {heading:.0f} degres "
+    "(orientation approximative : {cardinal}). Si la photo montre une facade, utilise cet indice "
+    "pour affiner suggested_cardinal_orientation."
+)
 
-def analyze_photo(image_bytes: bytes, mime_type: str, user: User | None = None) -> PhotoAnalysisResult:
-    raw = get_ai_provider(user).analyze_image(image_bytes, mime_type, ANALYSIS_INSTRUCTION)
+
+def analyze_photo(
+    image_bytes: bytes,
+    mime_type: str,
+    user: User | None = None,
+    compass_heading_deg: float | None = None,
+) -> PhotoAnalysisResult:
+    instruction = ANALYSIS_INSTRUCTION
+    if compass_heading_deg is not None:
+        instruction += COMPASS_HINT_TEMPLATE.format(
+            heading=compass_heading_deg, cardinal=cardinal_from_azimuth(compass_heading_deg)
+        )
+    raw = get_ai_provider(user).analyze_image(image_bytes, mime_type, instruction)
     return PhotoAnalysisResult.model_validate(raw)
 
 

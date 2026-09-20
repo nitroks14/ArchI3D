@@ -16,6 +16,12 @@ class PhotoAnalysisResult(CamelModel):
     suggested_room_type: str | None = None
     suggested_room_name: str | None = None
     confidence: str = "faible"
+    # Point d'integration : si la photo porte un cap boussole (PhotoFile.compass_heading_deg,
+    # releve par l'ecran camera integre du frontend), il est transmis en indice au provider IA
+    # (cf service.py) qui peut alors corroborer/suggerer l'orientation cardinale de la facade
+    # photographiee. Non rattache automatiquement a une Wall specifique en V1 (les photos ne sont
+    # pas encore associees a une paroi precise, seulement a une piece) - affinage V2.
+    suggested_cardinal_orientation: str | None = None
 
 
 class AerialImageAnalysisResult(CamelModel):

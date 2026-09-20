@@ -17,6 +17,7 @@ implementation exhaustive.
 - [Stack technique et justifications](#stack-technique-et-justifications)
 - [Modele de donnees hierarchique](#modele-de-donnees-hierarchique)
 - [Approche de reconstruction 3D](#approche-de-reconstruction-3d)
+- [Ecran camera integre (cap boussole)](#ecran-camera-integre-cap-boussole)
 - [Fournisseur IA (Gemini / Claude)](#fournisseur-ia-gemini--claude)
 - [Stockage des fichiers](#stockage-des-fichiers)
 - [Geolocalisation, orientation et donnees climatiques](#geolocalisation-orientation-et-donnees-climatiques)
@@ -166,6 +167,51 @@ photorealiste qu'une reconstruction photogrammetrique classique - **c'est un cho
 (mitoyennete non detectee) - chaque piece recoit une seule paroi "exterior" agregeant tout son
 perimetre, ce qui **surestime** les deperditions des pieces interieures. Documente dans les
 `assumptions` retournees par le moteur thermique.
+
+## Ecran camera integre (cap boussole)
+
+Pour les photos exterieures, `UploadPanel` propose (en plus du choix de fichier classique) un
+bouton **"Prendre une photo (camera + boussole)"** qui ouvre un ecran plein ecran
+(`frontend/src/presentation/components/CameraCapture/CameraCapture.tsx`) :
+
+- Flux video live via `navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })`
+  (camera arriere en priorite).
+- Bouton de capture : dessine la frame video courante sur un `<canvas>` cache, puis exporte un
+  blob JPEG (`canvas.toBlob`) transforme en `File` - meme flux d'upload que le reste de l'app.
+- **Cap boussole en direct**, superpose a l'ecran : `event.webkitCompassHeading` sur iOS/Safari
+  (deja exprime en degres 0-360 depuis le Nord), ou calcul approximatif `(360 - event.alpha) % 360`
+  depuis l'evenement `deviceorientationabsolute` (`deviceorientation` avec `absolute: true` en
+  repli) sur les autres navigateurs.
+- **iOS 13+** : `DeviceOrientationEvent.requestPermission()` doit etre appelee depuis un geste
+  utilisateur explicite (bouton "Activer la boussole" affiche a l'ecran) - sans ca, l'API ne
+  renvoie aucun evenement, c'est une contrainte Apple, pas un choix d'implementation.
+- Le cap releve au moment de la capture est envoye avec la photo (`compassHeadingDeg`, champ
+  optionnel sur `PhotoFile` cote backend).
+
+**Repli propre** : la camera integree est detectee au chargement (`getUserMedia` disponible ?) et
+n'est proposee que si le navigateur la supporte ; le choix de fichier classique (avec
+`capture="environment"` natif du navigateur comme confort supplementaire) reste **toujours**
+disponible en parallele, y compris si la camera/boussole echoue en cours d'usage (permission
+refusee, pas de camera...) - aucune fonctionnalite n'est bloquee par l'absence de ces API.
+
+**Point d'integration vision IA** : si une photo exterieure porte un `compassHeadingDeg`, il est
+transmis comme indice au prompt d'analyse (`backend/app/vision_analysis/service.py`), qui peut
+alors suggerer `suggestedCardinalOrientation` (N/NE/E/SE/S/SW/W/NW) en le corroborant avec l'image.
+**Non branche automatiquement sur une `Wall` precise** en V1 (les photos sont associees a une
+piece, pas encore a une facade/paroi individuelle - meme limitation que la segmentation par
+facade evoquee plus haut) - point d'integration prepare, a completer en V2.
+
+**Limitations connues** (non testees sur device reel dans ce sandbox, cf section Limitations) :
+- Precision de la boussole **approximative** : pas de calibration, pas de compensation de la
+  rotation ecran (`screen.orientation.angle`), sensible aux perturbations magnetiques locales
+  (structures metalliques, aimants...). A traiter comme un indice, pas une mesure fiable.
+- Support navigateur variable : `deviceorientationabsolute` n'existe pas partout (notamment
+  Safari desktop/iOS, qui n'expose que `webkitCompassHeading` via `deviceorientation`) ; certains
+  navigateurs desktop n'exposent aucune boussole (comportement attendu : indicateur "Boussole
+  indisponible", capture photo toujours fonctionnelle sans le cap).
+- **Necessite HTTPS** (contexte securise) pour `getUserMedia` et les evenements d'orientation -
+  deja le cas en production (GitHub Pages + backend HTTPS) ; en dev local, `localhost` beneficie
+  d'une exception navigateur standard, donc pas de configuration TLS locale necessaire.
 
 ## Fournisseur IA (Gemini / Claude)
 
@@ -406,12 +452,11 @@ Cloudflare R2 pour eviter toute perte de fichiers entre redeploiements.
 - **Environnement de dev sans pip/venv/internet verifie** - le backend n'a pas pu etre execute
   reellement pendant ce scaffolding (cf section "Lancer le projet en local").
 - **UX mobile/tablette non testee sur device reel** - le layout (Tailwind, `flex-wrap`, grilles
-  responsives) a ete revu pour eviter le scroll horizontal et l'upload photo utilise
-  `capture="environment"` (ouverture directe de la camera arriere), mais aucun test manuel sur un
-  vrai smartphone/tablette n'a pu etre fait dans cet environnement de scaffolding. A verifier en
-  priorite (tailles de cible tactile des boutons `shadcn/ui` par defaut - 36px, un peu sous les
-  44-48px recommandes - gestes tactiles du viewer 3D `OrbitControls`, clavier virtuel qui masque
-  des champs de formulaire...).
+  responsives) a ete revu pour eviter le scroll horizontal, mais aucun test manuel sur un vrai
+  smartphone/tablette n'a pu etre fait dans cet environnement de scaffolding (idem pour l'ecran
+  camera integre, cf section dediee ci-dessous). A verifier en priorite (tailles de cible tactile
+  des boutons `shadcn/ui` par defaut - 36px, un peu sous les 44-48px recommandes - gestes tactiles
+  du viewer 3D `OrbitControls`, clavier virtuel qui masque des champs de formulaire...).
 - **Limitation connue du SDK Gemini sous charge concurrente multi-utilisateurs** - `genai.configure()`
   est global au process Python, pas par-requete ; deux utilisateurs avec des cles differentes
   faisant une requete simultanee peuvent en theorie interferer (cf docstring

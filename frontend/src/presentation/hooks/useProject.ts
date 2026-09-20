@@ -99,8 +99,9 @@ export function useProject(projectId: string) {
   );
 
   const uploadPhoto = useCallback(
-    (file: File, kind: "interior" | "exterior") =>
-      project && runSafely(() => uploads.photo(project.id, file, kind).then(setProject)),
+    (file: File, kind: "interior" | "exterior", compassHeadingDeg?: number) =>
+      project &&
+      runSafely(() => uploads.photo(project.id, file, kind, compassHeadingDeg).then(setProject)),
     [project, uploads, runSafely],
   );
 

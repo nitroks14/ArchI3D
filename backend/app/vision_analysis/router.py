@@ -25,7 +25,9 @@ def analyze_project_photo(
 
     try:
         image_bytes = get_storage_backend().read(photo.storage_key)
-        analysis = analyze_photo(image_bytes, photo.content_type, current_user)
+        analysis = analyze_photo(
+            image_bytes, photo.content_type, current_user, photo.compass_heading_deg
+        )
     except RuntimeError as exc:
         # cle API du provider IA manquante : erreur explicite plutot qu'un 500 opaque
         raise HTTPException(status_code=503, detail=str(exc)) from exc

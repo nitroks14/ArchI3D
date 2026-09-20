@@ -54,7 +54,7 @@ export function ProjectPage({ projectId, onBack }: ProjectPageProps) {
         project={project}
         onUploadAerial={(file) => uploadAerialImage(file)}
         onUploadPlan={(file, floorLabel) => uploadPlan(file, floorLabel)}
-        onUploadPhoto={(file, kind) => uploadPhoto(file, kind)}
+        onUploadPhoto={(file, kind, compassHeadingDeg) => uploadPhoto(file, kind, compassHeadingDeg)}
         onUploadInvoice={(file) => uploadInvoice(file)}
         onAnalyzeAerial={() => analyzeAerial()}
       />

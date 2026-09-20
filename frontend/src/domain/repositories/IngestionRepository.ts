@@ -8,6 +8,7 @@ export interface IngestionRepository {
     file: File,
     kind: "interior" | "exterior",
     roomId?: string,
+    compassHeadingDeg?: number,
   ): Promise<ProjectState>;
   uploadInvoice(projectId: string, file: File): Promise<ProjectState>;
 }

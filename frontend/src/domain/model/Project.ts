@@ -10,6 +10,8 @@ export interface PhotoFile extends UploadedFile {
   kind: "interior" | "exterior";
   roomId: string | null;
   analysis: PhotoAnalysis | null;
+  /** Cap boussole (0-360, 0=Nord) releve au moment de la prise de vue - cf CameraCapture. */
+  compassHeadingDeg: number | null;
 }
 
 export interface PhotoAnalysis {
@@ -19,6 +21,7 @@ export interface PhotoAnalysis {
   equipment: string[];
   suggestedRoomType: string | null;
   suggestedRoomName: string | null;
+  suggestedCardinalOrientation: string | null;
   confidence: string;
 }
 

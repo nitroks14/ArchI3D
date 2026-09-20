@@ -21,11 +21,15 @@ export class HttpIngestionRepository implements IngestionRepository {
     file: File,
     kind: "interior" | "exterior",
     roomId?: string,
+    compassHeadingDeg?: number,
   ): Promise<ProjectState> {
     const form = new FormData();
     form.append("file", file);
     form.append("kind", kind);
     if (roomId) form.append("room_id", roomId);
+    if (compassHeadingDeg !== undefined) {
+      form.append("compass_heading_deg", String(compassHeadingDeg));
+    }
     return apiClient.postForm<ProjectState>(`/projects/${projectId}/photos`, form);
   }
 

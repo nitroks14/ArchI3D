@@ -28,10 +28,17 @@ async def store_plan(owner_id: str, project_id: str, file: UploadFile, floor_lab
 
 
 async def store_photo(
-    owner_id: str, project_id: str, file: UploadFile, kind: str, room_id: str | None
+    owner_id: str,
+    project_id: str,
+    file: UploadFile,
+    kind: str,
+    room_id: str | None,
+    compass_heading_deg: float | None = None,
 ) -> PhotoFile:
     base = await store_upload(owner_id, project_id, "photos", file)
-    return PhotoFile(kind=kind, room_id=room_id, **base.model_dump())
+    return PhotoFile(
+        kind=kind, room_id=room_id, compass_heading_deg=compass_heading_deg, **base.model_dump()
+    )
 
 
 async def store_invoice(owner_id: str, project_id: str, file: UploadFile) -> MaterialInvoiceFile:

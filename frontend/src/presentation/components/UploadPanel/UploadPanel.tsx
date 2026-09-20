@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import type { ProjectState } from "@/domain/model/Project";
+import { CameraCapture } from "@/presentation/components/CameraCapture/CameraCapture";
 import { Button } from "@/presentation/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/presentation/components/ui/card";
 import { Input } from "@/presentation/components/ui/input";
@@ -13,11 +14,17 @@ import {
   SelectValue,
 } from "@/presentation/components/ui/select";
 
+// Detection ponctuelle (au chargement du module) : disponible sur la quasi-totalite des
+// navigateurs mobiles modernes en contexte HTTPS, absent sur les navigateurs plus anciens ou en
+// HTTP. Repli propre garanti : le DropZone classique (input file) reste toujours disponible.
+const CAMERA_SUPPORTED =
+  typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function";
+
 interface UploadPanelProps {
   project: ProjectState;
   onUploadAerial: (file: File) => void;
   onUploadPlan: (file: File, floorLabel: string) => void;
-  onUploadPhoto: (file: File, kind: "interior" | "exterior") => void;
+  onUploadPhoto: (file: File, kind: "interior" | "exterior", compassHeadingDeg?: number) => void;
   onUploadInvoice: (file: File) => void;
   onAnalyzeAerial: () => void;
 }
@@ -36,6 +43,7 @@ export function UploadPanel({
 }: UploadPanelProps) {
   const [floorLabel, setFloorLabel] = useState("RDC");
   const [photoKind, setPhotoKind] = useState<"interior" | "exterior">("interior");
+  const [showCamera, setShowCamera] = useState(false);
 
   return (
     <Card>
@@ -96,6 +104,11 @@ export function UploadPanel({
               </SelectContent>
             </Select>
           </div>
+          {CAMERA_SUPPORTED && (
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowCamera(true)}>
+              Prendre une photo (camera + boussole)
+            </Button>
+          )}
           <DropZone
             label="Photo"
             accept="image/*"
@@ -114,6 +127,16 @@ export function UploadPanel({
           <p className="text-sm text-muted-foreground">{project.invoices.length} facture(s) recue(s).</p>
         </div>
       </CardContent>
+
+      {showCamera && (
+        <CameraCapture
+          onCapture={(file, compassHeadingDeg) => {
+            onUploadPhoto(file, photoKind, compassHeadingDeg ?? undefined);
+            setShowCamera(false);
+          }}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
     </Card>
   );
 }

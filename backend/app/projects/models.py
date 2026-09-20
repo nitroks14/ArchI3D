@@ -36,6 +36,10 @@ class PhotoFile(UploadedFile):
     kind: Literal["interior", "exterior"] = "interior"
     room_id: str | None = None
     analysis: dict | None = None  # dernier resultat d'analyse vision IA
+    # Cap boussole (0-360, 0=Nord) releve au moment de la prise de vue via l'ecran camera integre
+    # du frontend (cf presentation/components/CameraCapture). Absent pour les photos importees
+    # autrement (upload classique, desktop sans capteur...) - toujours optionnel.
+    compass_heading_deg: float | None = None
 
 
 class MaterialInvoiceFile(UploadedFile):

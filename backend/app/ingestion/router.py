@@ -62,10 +62,14 @@ async def upload_photo(
     file: UploadFile = File(...),
     kind: str = Form("interior"),
     room_id: str | None = Form(None),
+    # Cap boussole (0-360, 0=Nord) releve par l'ecran camera integre du frontend, si disponible.
+    compass_heading_deg: float | None = Form(None),
     state: ProjectState = Depends(get_owned_project_state),
 ) -> ProjectState:
     store = get_project_store()
-    state.photos.append(await store_photo(state.owner_id, project_id, file, kind, room_id))
+    state.photos.append(
+        await store_photo(state.owner_id, project_id, file, kind, room_id, compass_heading_deg)
+    )
     store.save(state)
     return state
 

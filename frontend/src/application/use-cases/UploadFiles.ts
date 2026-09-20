@@ -4,7 +4,11 @@ import type { IngestionRepository } from "@/domain/repositories/IngestionReposit
 export const uploadFiles = (repo: IngestionRepository) => ({
   aerialImage: (projectId: string, file: File) => repo.uploadAerialImage(projectId, file),
   plan: (projectId: string, file: File, floorLabel: string) => repo.uploadPlan(projectId, file, floorLabel),
-  photo: (projectId: string, file: File, kind: "interior" | "exterior") =>
-    repo.uploadPhoto(projectId, file, kind),
+  photo: (
+    projectId: string,
+    file: File,
+    kind: "interior" | "exterior",
+    compassHeadingDeg?: number,
+  ) => repo.uploadPhoto(projectId, file, kind, undefined, compassHeadingDeg),
   invoice: (projectId: string, file: File) => repo.uploadInvoice(projectId, file),
 });
