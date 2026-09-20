@@ -26,12 +26,17 @@ GLAZING_OPTIONS = [
     ("triple", "Triple vitrage"),
 ]
 
-# Facteur secondaire QUALITATIF d'inertie thermique (cf app/thermal_engine/inertia.py) - a ne
-# jamais confondre avec le facteur structurel norme (parois), calcule automatiquement.
+# Masse thermique complementaire (mobilier) - indicateur QUALITATIF de confort d'ete/risque de
+# surchauffe en approche bioclimatique (cf app/thermal_engine/inertia.py), totalement distinct de
+# la classe d'inertie normee des parois (calculee automatiquement, jamais modifiee par ceci).
 HEAVY_THERMAL_MASS_OPTIONS = [
     ("none", "Aucun / peu d'elements massifs"),
     ("some", "Quelques elements (ex: une cheminee ou un poele en pierre/beton)"),
-    ("significant", "Beaucoup d'elements massifs (cheminee en pierre, poele de masse, chape beton apparente, mobilier massif en bois...)"),
+    (
+        "significant",
+        "Beaucoup d'elements massifs (cheminee en pierre, poele de masse, "
+        "chape beton apparente, mobilier massif en bois...)",
+    ),
 ]
 
 
@@ -54,14 +59,21 @@ def get_next_question(building: BuildingModel, answers: dict[str, str]) -> Quest
             if exterior_wall and exterior_wall.construction_type == "unknown":
                 catalog = load_construction_types()
                 options = [
-                    QuestionOption(value=key, label=entry["label"], image_url=f"/reference-assets/{entry['image_asset']}")
+                    QuestionOption(
+                        value=key,
+                        label=entry["label"],
+                        image_url=f"/reference-assets/{entry['image_asset']}",
+                    )
                     for key, entry in catalog.items()
                     if key != "unknown"
                 ]
                 return Question(
                     id=f"q_construction_{exterior_wall.id}",
                     field=f"wall:{exterior_wall.id}:construction_type",
-                    text=f'Quel type de construction correspond le mieux aux murs exterieurs de "{room.name}" ?',
+                    text=(
+                        "Quel type de construction correspond le mieux aux murs "
+                        f'exterieurs de "{room.name}" ?'
+                    ),
                     type="single_choice",
                     options=options,
                     context_label=room.name,
@@ -93,9 +105,11 @@ def get_next_question(building: BuildingModel, answers: dict[str, str]) -> Quest
             text=(
                 "Ton logement contient-il des elements massifs importants (cheminee en pierre, "
                 "poele de masse, chape beton apparente, beaucoup de mobilier massif en bois) ? "
-                "Cette info affine legerement la classe d'inertie thermique calculee automatiquement "
-                "a partir des parois - elle reste indicative, contrairement aux parois qui sont le "
-                "seul facteur reellement pris en compte par les methodes reglementaires."
+                "Cette masse interieure aide a amortir les variations de temperature et limite le "
+                "risque de surchauffe l'ete (utile pour une approche bioclimatique/passive) - "
+                "c'est un indicateur de confort complementaire, distinct de la classe d'inertie "
+                "des parois calculee automatiquement, qui elle seule compte pour la conformite "
+                "reglementaire RE2020/RT."
             ),
             type="single_choice",
             options=[

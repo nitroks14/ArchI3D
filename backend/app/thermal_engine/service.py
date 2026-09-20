@@ -10,7 +10,11 @@ scenario d'occupation RE2020). Toutes les hypotheses de calcul sont listees dans
 """
 from app.climate.factory import get_climate_data_provider
 from app.shared.schemas import BuildingModel, Room, Wall
-from app.thermal_engine.inertia import compute_thermal_inertia
+from app.thermal_engine.inertia import (
+    DYNAMIC_INTEGRATION_NOTE,
+    compute_structural_inertia_class,
+    estimate_additional_thermal_mass,
+)
 from app.thermal_engine.reference_data_loader import (
     load_construction_types,
     load_glazing,
@@ -114,10 +118,17 @@ def compute_thermal_report(
     heavy_mass_vision_hints: list[str] | None = None,
 ) -> dict:
     dju, dju_source = _resolve_dju(building)
-    inertia_class, inertia_notes = compute_thermal_inertia(
-        building, heavy_mass_questionnaire_hint, heavy_mass_vision_hints
-    )
+
+    # Deux mesures INDEPENDANTES, jamais fusionnees (cf app/thermal_engine/inertia.py) : la
+    # classe d'inertie (parois, normee) n'est jamais modifiee par l'estimation qualitative du
+    # mobilier - elles sont calculees separement et affichees cote a cote dans le rapport.
+    inertia_class, inertia_notes = compute_structural_inertia_class(building)
     building.thermal_inertia_class = inertia_class
+
+    additional_mass_level, additional_mass_notes = estimate_additional_thermal_mass(
+        heavy_mass_questionnaire_hint, heavy_mass_vision_hints
+    )
+    building.additional_thermal_mass_estimate = additional_mass_level
 
     totals = {
         "floor_area_m2": 0.0,
@@ -166,13 +177,21 @@ def compute_thermal_report(
             round(estimated_kwh_per_m2, 0) if estimated_kwh_per_m2 else None
         ),
         "thermal_inertia_class": inertia_class,
+        "additional_thermal_mass_estimate": additional_mass_level,
         "assumptions": [
-            "Valeurs indicatives de degrossissage - PAS une etude thermique reglementaire (pas de methode Th-BCE/RE2020 complete).",
+            "Valeurs indicatives de degrossissage - PAS une etude thermique reglementaire "
+            "(pas de methode Th-BCE/RE2020 complete).",
             f"Degres-jours unifies (DJU) = {dju:.0f}, source : {dju_source}.",
-            "Tout le perimetre de chaque piece est considere comme paroi exterieure (l'heuristique V1 ne detecte pas les murs mitoyens entre pieces) - surestime les deperditions des pieces interieures.",
-            f"Plancher bas par defaut U={DEFAULT_FLOOR_U} W/m2.K et toiture par defaut U={DEFAULT_ROOF_U} W/m2.K si non renseignes via facture/questionnaire.",
+            "Tout le perimetre de chaque piece est considere comme paroi exterieure "
+            "(l'heuristique V1 ne detecte pas les murs mitoyens entre pieces) - surestime "
+            "les deperditions des pieces interieures.",
+            f"Plancher bas par defaut U={DEFAULT_FLOOR_U} W/m2.K et toiture par defaut "
+            f"U={DEFAULT_ROOF_U} W/m2.K si non renseignes via facture/questionnaire.",
             f"Poste ECS + auxiliaires + eclairage forfaitise a {OTHER_USES_KWH_PER_M2} kWh/m2/an.",
-            "Ubat approxime en supposant une surface d'enveloppe totale ~= 3x la surface au sol (murs+plancher+toiture).",
+            "Ubat approxime en supposant une surface d'enveloppe totale ~= 3x la surface au "
+            "sol (murs+plancher+toiture).",
             *inertia_notes,
+            *additional_mass_notes,
+            DYNAMIC_INTEGRATION_NOTE,
         ],
     }

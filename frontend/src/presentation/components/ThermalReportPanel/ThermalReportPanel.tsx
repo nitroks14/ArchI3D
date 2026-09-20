@@ -1,4 +1,4 @@
-import type { ThermalInertiaClass } from "@/domain/model/Building";
+import type { AdditionalThermalMassLevel, ThermalInertiaClass } from "@/domain/model/Building";
 import type { ThermalReport } from "@/domain/model/Project";
 import { Button } from "@/presentation/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/presentation/components/ui/card";
@@ -12,6 +12,12 @@ const INERTIA_LABELS: Record<ThermalInertiaClass, string> = {
   light: "Legere",
   medium: "Moyenne",
   heavy: "Lourde",
+};
+
+const ADDITIONAL_MASS_LABELS: Record<AdditionalThermalMassLevel, string> = {
+  low: "Faible",
+  notable: "Notable",
+  significant: "Importante",
 };
 
 export function ThermalReportPanel({ report, onCompute }: ThermalReportPanelProps) {
@@ -40,11 +46,32 @@ export function ThermalReportPanel({ report, onCompute }: ThermalReportPanelProp
               <li className="rounded-md bg-secondary p-2 text-sm">
                 <strong>Surface prise en compte</strong> : {report.floorAreaM2} m²
               </li>
-              <li className="rounded-md bg-secondary p-2 text-sm">
-                <strong>Inertie thermique</strong> :{" "}
-                {report.thermalInertiaClass ? INERTIA_LABELS[report.thermalInertiaClass] : "?"}
-              </li>
             </ul>
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="rounded-md border p-2 text-sm">
+                <p className="font-medium">
+                  Inertie thermique (parois){" "}
+                  {report.thermalInertiaClass && INERTIA_LABELS[report.thermalInertiaClass]}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Seul facteur reellement norme (RE2020/RT) - utilise pour la conformite
+                  reglementaire.
+                </p>
+              </div>
+              <div className="rounded-md border p-2 text-sm">
+                <p className="font-medium">
+                  Masse thermique complementaire (mobilier){" "}
+                  {report.additionalThermalMassEstimate &&
+                    ADDITIONAL_MASS_LABELS[report.additionalThermalMassEstimate]}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Indicateur qualitatif de confort d&apos;ete / risque de surchauffe (approche
+                  bioclimatique) - hors calcul reglementaire, distinct de l&apos;inertie des
+                  parois ci-contre.
+                </p>
+              </div>
+            </div>
 
             <table className="w-full text-sm">
               <thead>

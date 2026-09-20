@@ -8,6 +8,7 @@ solaire par orientation/inclinaison (PVGIS, JRC europeen, gratuit sans cle) n'es
 appelee - point d'integration prevu ici en V2 (cf README > roadmap).
 """
 from abc import ABC, abstractmethod
+
 from pydantic import BaseModel
 
 

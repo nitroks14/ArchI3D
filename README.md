@@ -102,7 +102,8 @@ Building
 ├── latitude / longitude / altitudeM        (geolocalisation, cf app/geolocation)
 ├── northOffsetDeg                          (orientation Nord, widget compas frontend)
 ├── SolarInstallation[]                     (panneaux solaires existants, detection vision IA ou saisie)
-├── thermalInertiaClass                     (leger/moyen/lourd, calcule a chaque rapport thermique)
+├── thermalInertiaClass                     (parois, normee RE2020 - calcul reglementaire)
+├── additionalThermalMassEstimate           (mobilier, qualitatif - confort d'ete, mesure separee)
 └── Floor[]  (RDC, Etage 1, Combles, Sous-sol...)
     └── Room[]
         ├── name / suggestedName / nameConfirmed   (nom propose par l'IA, toujours editable)
@@ -308,41 +309,54 @@ toutes les hypotheses de calcul utilisees pour rester transparent.
 
 ## Inertie thermique
 
-Le rapport thermique calcule automatiquement une **classe d'inertie thermique simplifiee a 3
-niveaux** (leger/moyen/lourd), inspiree de l'approche RE2020 sans en reprendre la methode
-complete (5 classes normees Th-I, avec un Cm en J/m2.K par zone) - cf
-`backend/app/thermal_engine/inertia.py`.
+Le rapport thermique calcule **deux mesures independantes, jamais fusionnees**, chacune utile a
+un usage different - cf `backend/app/thermal_engine/inertia.py`.
 
-**Deux facteurs, de nature tres differente :**
+### 1. Classe d'inertie des parois (`thermalInertiaClass`) - calcul reglementaire
 
-1. **Parois structurelles (dominant, seul facteur reellement norme)** - derive automatiquement de
-   la masse surfacique approximative des materiaux/typologies des parois exposees cote interieur
-   (murs exterieurs, planchers, toiture) : si une `MaterialLayer` precise est renseignee (vision,
-   facture, saisie utilisateur), son materiau prime ; sinon, la typologie de construction de la
-   paroi (`Wall.constructionType`, cf catalogue illustre) sert de repli (ex : ITE -> masse dense
-   exposee cote interieur -> "lourd" ; ossature bois/ITI -> masse dense isolee ou absente ->
-   "leger"). Score moyen pondere par surface -> classe retenue (seuils dans
-   `thermal_inertia.json`).
-2. **Mobilier/elements massifs (secondaire, QUALITATIF)** - une question du questionnaire
-   ("elements massifs importants : cheminee en pierre, poele de masse, chape beton apparente,
-   mobilier massif en bois ?") et/ou des indices detectes par l'analyse vision des photos
-   (nouveau champ `heavyThermalMassElementsDetected` sur `PhotoAnalysis`) peuvent faire basculer
-   la classe calculee a l'etape 1 d'un cran vers le haut (leger -> moyen, moyen -> lourd).
-   **Important - distinction toujours visible dans les `assumptions` du rapport** : ce facteur est
-   une **correction indicative uniquement**. Les methodes reglementaires RE2020/RT ne
-   comptabilisent **pas** le mobilier dans le calcul officiel d'inertie, seulement les parois -
-   ce N'EST PAS une donnee d'entree certifiee, juste un indice qualitatif optionnel.
+Classe simplifiee a 3 niveaux (leger/moyen/lourd), inspiree de l'approche RE2020 sans en
+reprendre la methode complete (5 classes normees Th-I, avec un Cm en J/m2.K par zone). Derive
+automatiquement de la masse surfacique approximative des materiaux/typologies des parois exposees
+cote interieur (murs exterieurs, planchers, toiture) : si une `MaterialLayer` precise est
+renseignee (vision, facture, saisie utilisateur), son materiau prime ; sinon, la typologie de
+construction de la paroi (`Wall.constructionType`, cf catalogue illustre) sert de repli (ex : ITE
+-> masse dense exposee cote interieur -> "lourd" ; ossature bois/ITI -> masse dense isolee ou
+absente -> "leger"). Score moyen pondere par surface -> classe retenue (seuils dans
+`thermal_inertia.json`). **C'est le seul facteur reellement norme et pris en compte par les
+methodes reglementaires (RE2020/RT).**
 
-**Integration au calcul du besoin de chauffage : volontairement NON appliquee.** L'inertie reduit
-en realite la consommation via un effet de dephasage/amortissement (meilleure utilisation des
-apports solaires et internes), mais le moteur actuel est un calcul **statique** (coefficient de
-deperdition x DJU), sans notion de dynamique temporelle ni d'apports. Appliquer un facteur
-correctif arbitraire sur le kWh/m²/an aurait ete un calcul non fonde. Le champ
-`thermalInertiaClass` est donc calcule et expose dans le rapport (a titre informatif), mais
-**n'influence pas** `estimatedKwhPerM2PerYear`. Le vrai point d'integration - documente ici plutot
-qu'improvise - necessiterait soit une methode a facteur d'utilisation des apports dependant de
-l'inertie (type Th-C-E simplifiee), soit une **simulation thermique dynamique (STD)** : cf
-roadmap V2.
+### 2. Masse thermique complementaire (`additionalThermalMassEstimate`) - confort d'ete, mesure separee
+
+Indicateur **qualitatif independant**, base sur le mobilier/les elements massifs presents
+(cheminee en pierre, poele de masse, chape beton apparente, mobilier massif en bois...), issu
+d'une question du questionnaire et/ou d'indices detectes par l'analyse vision des photos
+(`PhotoAnalysis.heavyThermalMassElementsDetected`).
+
+**Ce champ a un role reel, pas juste une note secondaire** : en approche bioclimatique/maison
+passive, la masse interieure (mobilier compris) contribue effectivement a l'amortissement des
+variations de temperature et au confort d'ete (limitation du risque de surchauffe) - un phenomene
+physique reel, simplement non comptabilise par le calcul reglementaire officiel. Les deux mesures
+sont donc **toutes les deux vraies et non contradictoires**, chacune contextualisee a son usage :
+
+| Champ | Base sur | Usage |
+|---|---|---|
+| `thermalInertiaClass` | Parois uniquement (murs, plancher, toiture) | Calcul reglementaire normalise (RE2020/RT) |
+| `additionalThermalMassEstimate` | Mobilier/elements massifs (questionnaire + vision) | Indicateur qualitatif de confort d'ete / risque de surchauffe, approche bioclimatique - **hors conformite reglementaire** |
+
+**`additionalThermalMassEstimate` ne modifie jamais `thermalInertiaClass`** - affiches cote a cote
+dans `ThermalReportPanel` (deux blocs distincts, chacun avec sa propre explication), jamais
+fusionnes dans le meme calcul ni le meme champ.
+
+**Integration au calcul du besoin de chauffage : volontairement NON appliquee, pour aucun des deux
+champs.** L'inertie (parois) et la masse complementaire (mobilier) reduisent en realite la
+consommation/ameliorent le confort via un effet de dephasage/amortissement (meilleure utilisation
+des apports solaires et internes), mais le moteur actuel est un calcul **statique** (coefficient
+de deperdition x DJU), sans notion de dynamique temporelle ni d'apports. Appliquer un facteur
+correctif arbitraire sur le kWh/m²/an aurait ete un calcul non fonde. Les deux champs sont donc
+calcules et exposes dans le rapport (a titre informatif), mais **n'influencent pas**
+`estimatedKwhPerM2PerYear`. Le vrai point d'integration - documente ici plutot qu'improvise -
+necessiterait soit une methode a facteur d'utilisation des apports dependant de l'inertie (type
+Th-C-E simplifiee), soit une **simulation thermique dynamique (STD)** : cf roadmap V2.
 
 ## Authentification (Google OAuth)
 

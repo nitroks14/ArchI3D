@@ -1,6 +1,5 @@
 from typing import Literal
 
-
 from app.shared.base import CamelModel
 
 

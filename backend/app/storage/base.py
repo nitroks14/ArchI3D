@@ -2,7 +2,8 @@
 Abstraction de stockage de fichiers binaires (photos, plans, factures materiaux, export GLB).
 
 V1 propose deux implementations concretes :
-- LocalDiskStorage : ecrit sur le disque du conteneur backend, servi via /files (defaut, aucune dependance externe)
+- LocalDiskStorage : ecrit sur le disque du conteneur backend, servi via /files (defaut,
+  aucune dependance externe)
 - R2Storage : Cloudflare R2 (API compatible S3, tier gratuit jusqu'a 10 Go)
 
 Le choix se fait via la variable d'environnement STORAGE_BACKEND.

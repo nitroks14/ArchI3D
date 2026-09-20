@@ -19,8 +19,21 @@ export type MaterialSource = "vision_estimate" | "invoice" | "user_input" | "def
 
 export type CardinalDirection = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
 
-/** Classe d'inertie thermique simplifiee (leger/moyen/lourd) - cf backend/app/thermal_engine/inertia.py. */
+/**
+ * Classe d'inertie thermique simplifiee (leger/moyen/lourd), basee UNIQUEMENT sur les parois -
+ * c'est le seul facteur reellement norme (RE2020/RT), utilise pour le calcul reglementaire.
+ * Cf backend/app/thermal_engine/inertia.py > compute_structural_inertia_class.
+ */
 export type ThermalInertiaClass = "light" | "medium" | "heavy";
+
+/**
+ * Masse thermique complementaire (mobilier/elements massifs), mesure QUALITATIVE et
+ * INDEPENDANTE de ThermalInertiaClass - jamais fusionnee avec elle. Indicateur de confort d'ete/
+ * risque de surchauffe en approche bioclimatique (la masse interieure amortit reellement les
+ * variations de temperature), PAS un facteur de conformite reglementaire.
+ * Cf backend/app/thermal_engine/inertia.py > estimate_additional_thermal_mass.
+ */
+export type AdditionalThermalMassLevel = "low" | "notable" | "significant";
 
 export interface Opening {
   id: string;
@@ -113,4 +126,5 @@ export interface BuildingModel {
   northOffsetDeg: number;
   solarInstallations: SolarInstallation[];
   thermalInertiaClass: ThermalInertiaClass | null;
+  additionalThermalMassEstimate: AdditionalThermalMassLevel | null;
 }

@@ -19,7 +19,9 @@ Reponds avec un objet JSON de la forme exacte :
   "suggested_room_type": "kitchen|bedroom|living_room|bathroom|hallway|garage|other|null",
   "suggested_room_name": "nom de piece propose en francais, ou null si photo exterieure",
   "suggested_cardinal_orientation": "N|NE|E|SE|S|SW|W|NW|null",
-  "heavy_thermal_mass_elements_detected": ["elements massifs visibles pouvant indiquer une forte inertie thermique, ex: cheminee en pierre, poele de masse, chape beton apparente, mobilier massif en bois important - liste vide si aucun"],
+  "heavy_thermal_mass_elements_detected": ["elements massifs visibles pouvant indiquer une
+    forte inertie thermique, ex: cheminee en pierre, poele de masse, chape beton apparente,
+    mobilier massif en bois important - liste vide si aucun"],
   "confidence": "faible|moyenne|elevee"
 }
 Si une information n'est pas visible, laisse une liste vide ou "indeterminee"/null. Ne fais pas
@@ -56,7 +58,8 @@ en particulier sa toiture. Reponds avec un objet JSON de la forme exacte :
   "roof_shape": "description sommaire de la forme de toiture visible, ou null",
   "solar_panels_detected": true ou false,
   "solar_panels_area_estimate_m2": nombre (surface approximative des panneaux visibles en m2) ou null,
-  "solar_panels_location_hint": "description sommaire de la position sur la toiture (ex: pan sud, pan principal) ou null",
+  "solar_panels_location_hint": "description sommaire de la position sur la toiture
+    (ex: pan sud, pan principal) ou null",
   "confidence": "faible|moyenne|elevee"
 }
 Ne fais pas d'hypothese non fondee sur l'image ; si aucun panneau n'est visible,

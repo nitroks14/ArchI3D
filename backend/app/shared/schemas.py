@@ -30,6 +30,10 @@ CardinalDirection = Literal["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 
 ThermalInertiaClass = Literal["light", "medium", "heavy"]
 
+# Mesure QUALITATIVE et INDEPENDANTE de ThermalInertiaClass - jamais fusionnee avec elle ni
+# utilisee pour l'ajuster. Cf app/thermal_engine/inertia.py > estimate_additional_thermal_mass.
+AdditionalThermalMassLevel = Literal["low", "notable", "significant"]
+
 
 class Opening(CamelModel):
     """Ouverture percee dans une paroi : fenetre ou porte."""
@@ -141,8 +145,17 @@ class BuildingModel(CamelModel):
 
     # Classe d'inertie thermique simplifiee (leger/moyen/lourd), calculee automatiquement a partir
     # des materiaux/typologies des parois exposees (cf app/thermal_engine/inertia.py) a chaque
-    # calcul du rapport thermique. Null tant qu'aucun rapport n'a ete calcule.
+    # calcul du rapport thermique. Null tant qu'aucun rapport n'a ete calcule. Seul facteur norme
+    # (parois) - INTACT, jamais modifie par le mobilier.
     thermal_inertia_class: ThermalInertiaClass | None = None
+
+    # Masse thermique complementaire (mobilier/elements massifs : cheminee en pierre, poele de
+    # masse, chape beton apparente...), issue du questionnaire et/ou de l'analyse vision des
+    # photos. Indicateur QUALITATIF de confort d'ete / risque de surchauffe en approche
+    # bioclimatique (la masse interieure amortit reellement les variations de temperature) - PAS
+    # un facteur de conformite reglementaire (RE2020/RT ne comptabilisent que les parois dans
+    # thermal_inertia_class). Affiche a cote, jamais fusionne ni utilise pour ajuster ce dernier.
+    additional_thermal_mass_estimate: AdditionalThermalMassLevel | None = None
 
     # --- Geolocalisation (cf app/geolocation) ---
     latitude: float | None = None

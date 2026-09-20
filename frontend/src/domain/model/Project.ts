@@ -1,5 +1,9 @@
 import type { Annex } from "@/domain/model/Annex";
-import type { BuildingModel, ThermalInertiaClass } from "@/domain/model/Building";
+import type {
+  AdditionalThermalMassLevel,
+  BuildingModel,
+  ThermalInertiaClass,
+} from "@/domain/model/Building";
 import type { UploadedFile } from "@/shared/types/common";
 
 export interface PlanFile extends UploadedFile {
@@ -22,7 +26,11 @@ export interface PhotoAnalysis {
   suggestedRoomType: string | null;
   suggestedRoomName: string | null;
   suggestedCardinalOrientation: string | null;
-  /** Indice qualitatif pour l'inertie thermique (cheminee en pierre, chape beton...) - non norme. */
+  /**
+   * Indice qualitatif pour la masse thermique complementaire (cheminee en pierre, chape beton
+   * apparente...) - indicateur de confort d'ete, distinct de la classe d'inertie normee des
+   * parois (non comptabilise par le calcul reglementaire RE2020/RT).
+   */
   heavyThermalMassElementsDetected: string[];
   confidence: string;
 }
@@ -83,6 +91,13 @@ export interface ThermalReport {
   djuSource: string;
   estimatedAnnualHeatingKwh: number;
   estimatedKwhPerM2PerYear: number | null;
+  /** Inertie des parois (normee RE2020/RT) - seul facteur de conformite reglementaire. */
   thermalInertiaClass: ThermalInertiaClass | null;
+  /**
+   * Masse thermique complementaire (mobilier) - indicateur QUALITATIF de confort d'ete / risque
+   * de surchauffe, HORS calcul reglementaire. Toujours affiche separement de
+   * thermalInertiaClass, jamais fusionne avec lui.
+   */
+  additionalThermalMassEstimate: AdditionalThermalMassLevel | null;
   assumptions: string[];
 }
