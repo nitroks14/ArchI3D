@@ -6,13 +6,15 @@ import type { QuestionnaireState } from "@/domain/model/Question";
 import type { ConstructionTypeCatalog } from "@/domain/model/ConstructionTypeCatalog";
 import { createProject } from "@/application/use-cases/CreateProject";
 import { uploadFiles } from "@/application/use-cases/UploadFiles";
-import { analyzePhoto } from "@/application/use-cases/AnalyzePhoto";
+import { analyzeAerialImage, analyzePhoto } from "@/application/use-cases/AnalyzePhoto";
 import { generateBuildingModel } from "@/application/use-cases/GenerateBuildingModel";
 import { manageMaterialInvoice } from "@/application/use-cases/ManageMaterialInvoice";
 import { runQuestionnaireStep } from "@/application/use-cases/RunQuestionnaireStep";
 import { computeThermalReport } from "@/application/use-cases/ComputeThermalReport";
 import { fetchConstructionCatalog } from "@/application/use-cases/FetchConstructionCatalog";
 import { manageBuildingLocation } from "@/application/use-cases/ManageBuildingLocation";
+import { manageAnnexes } from "@/application/use-cases/ManageAnnexes";
+import type { CreateAnnexInput } from "@/domain/model/Annex";
 import { HttpProjectRepository } from "@/infrastructure/http/HttpProjectRepository";
 import { HttpIngestionRepository } from "@/infrastructure/http/HttpIngestionRepository";
 import { HttpVisionAnalysisRepository } from "@/infrastructure/http/HttpVisionAnalysisRepository";
@@ -22,6 +24,7 @@ import { HttpQuestionnaireRepository } from "@/infrastructure/http/HttpQuestionn
 import { HttpThermalReportRepository } from "@/infrastructure/http/HttpThermalReportRepository";
 import { HttpReferenceDataRepository } from "@/infrastructure/http/HttpReferenceDataRepository";
 import { HttpGeolocationRepository } from "@/infrastructure/http/HttpGeolocationRepository";
+import { HttpAnnexRepository } from "@/infrastructure/http/HttpAnnexRepository";
 import { ApiError } from "@/infrastructure/http/ApiClient";
 
 // Instanciation unique des repositories HTTP (pas de framework DI pour ce scaffold V1).
@@ -34,6 +37,7 @@ const questionnaireRepo = new HttpQuestionnaireRepository();
 const thermalRepo = new HttpThermalReportRepository();
 const referenceRepo = new HttpReferenceDataRepository();
 const geolocationRepo = new HttpGeolocationRepository();
+const annexRepo = new HttpAnnexRepository();
 
 export function useProject() {
   const [project, setProject] = useState<ProjectState | null>(null);
@@ -46,6 +50,7 @@ export function useProject() {
   const invoiceActions = useMemo(() => manageMaterialInvoice(invoiceRepo), []);
   const questionnaireActions = useMemo(() => runQuestionnaireStep(questionnaireRepo), []);
   const locationActions = useMemo(() => manageBuildingLocation(geolocationRepo), []);
+  const annexActions = useMemo(() => manageAnnexes(annexRepo), []);
 
   const runSafely = useCallback(async <T,>(action: () => Promise<T>): Promise<T | undefined> => {
     setBusy(true);
@@ -186,6 +191,36 @@ export function useProject() {
     [project, locationActions, refreshProject, runSafely],
   );
 
+  const analyzeAerial = useCallback(
+    () =>
+      project &&
+      runSafely(async () => {
+        await analyzeAerialImage(visionRepo)(project.id);
+        await refreshProject(project.id);
+      }),
+    [project, refreshProject, runSafely],
+  );
+
+  const createAnnex = useCallback(
+    (input: CreateAnnexInput) =>
+      project &&
+      runSafely(async () => {
+        await annexActions.create(project.id, input);
+        await refreshProject(project.id);
+      }),
+    [project, annexActions, refreshProject, runSafely],
+  );
+
+  const removeAnnex = useCallback(
+    (annexId: string) =>
+      project &&
+      runSafely(async () => {
+        await annexActions.remove(project.id, annexId);
+        await refreshProject(project.id);
+      }),
+    [project, annexActions, refreshProject, runSafely],
+  );
+
   return {
     project,
     questionnaire,
@@ -205,5 +240,8 @@ export function useProject() {
     getThermalReport,
     geocodeAddress,
     updateNorthOffset,
+    analyzeAerial,
+    createAnnex,
+    removeAnnex,
   };
 }

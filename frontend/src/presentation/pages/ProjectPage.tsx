@@ -4,6 +4,8 @@ import { ModelPanel } from "@/presentation/components/ModelPanel/ModelPanel";
 import { BuildingLocationPanel } from "@/presentation/components/BuildingLocationPanel/BuildingLocationPanel";
 import { QuestionnairePanel } from "@/presentation/components/QuestionnairePanel/QuestionnairePanel";
 import { ThermalReportPanel } from "@/presentation/components/ThermalReportPanel/ThermalReportPanel";
+import { AnnexPanel } from "@/presentation/components/AnnexPanel/AnnexPanel";
+import { Badge } from "@/presentation/components/ui/badge";
 
 export function ProjectPage() {
   const {
@@ -21,19 +23,22 @@ export function ProjectPage() {
     getThermalReport,
     geocodeAddress,
     updateNorthOffset,
+    analyzeAerial,
+    createAnnex,
+    removeAnnex,
   } = useProject();
 
   if (!project) {
-    return <p className="loading">Initialisation du projet...</p>;
+    return <p className="p-8 text-center text-muted-foreground">Initialisation du projet...</p>;
   }
 
   return (
-    <main className="project-page">
-      <header>
-        <h1>ArchI3D</h1>
-        <p className="hint">Projet {project.id}</p>
-        {busy && <span className="badge">En cours...</span>}
-        {error && <span className="badge badge--error">{error}</span>}
+    <main className="mx-auto flex max-w-3xl flex-col gap-5 p-4 sm:p-8">
+      <header className="flex flex-wrap items-center gap-2">
+        <h1 className="text-2xl font-bold">ArchI3D</h1>
+        <p className="text-sm text-muted-foreground">Projet {project.id}</p>
+        {busy && <Badge variant="secondary">En cours...</Badge>}
+        {error && <Badge variant="destructive">{error}</Badge>}
       </header>
 
       <UploadPanel
@@ -42,6 +47,7 @@ export function ProjectPage() {
         onUploadPlan={(file, floorLabel) => uploadPlan(file, floorLabel)}
         onUploadPhoto={(file, kind) => uploadPhoto(file, kind)}
         onUploadInvoice={(file) => uploadInvoice(file)}
+        onAnalyzeAerial={() => analyzeAerial()}
       />
 
       <BuildingLocationPanel
@@ -54,6 +60,12 @@ export function ProjectPage() {
         plans={project.plans}
         glbUrl={project.buildingModel?.glbUrl ?? null}
         onGenerate={(params) => generateModel(params)}
+      />
+
+      <AnnexPanel
+        annexes={project.annexes}
+        onCreate={(input) => createAnnex(input)}
+        onRemove={(annexId) => removeAnnex(annexId)}
       />
 
       <QuestionnairePanel

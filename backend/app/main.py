@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from app.annexes.router import router as annexes_router
 from app.core.config import get_settings
 from app.geolocation.router import router as geolocation_router
 from app.ingestion.router import router as ingestion_router
@@ -40,6 +41,7 @@ app.mount("/reference-assets", StaticFiles(directory=_reference_assets_dir), nam
 
 app.include_router(ingestion_router)
 app.include_router(geolocation_router)
+app.include_router(annexes_router)
 app.include_router(vision_analysis_router)
 app.include_router(model_generation_router)
 app.include_router(material_invoices_router)

@@ -1,3 +1,4 @@
+import type { Annex } from "@/domain/model/Annex";
 import type { BuildingModel } from "@/domain/model/Building";
 import type { UploadedFile } from "@/shared/types/common";
 
@@ -37,6 +38,14 @@ export interface MaterialInvoiceFile extends UploadedFile {
   linkedWallId: string | null;
 }
 
+export interface AerialImageAnalysis {
+  roofShape: string | null;
+  solarPanelsDetected: boolean;
+  solarPanelsAreaEstimateM2: number | null;
+  solarPanelsLocationHint: string | null;
+  confidence: string;
+}
+
 export interface ProjectState {
   id: string;
   createdAt: string;
@@ -45,8 +54,10 @@ export interface ProjectState {
   photos: PhotoFile[];
   invoices: MaterialInvoiceFile[];
   buildingModel: BuildingModel | null;
+  annexes: Annex[];
   questionnaireAnswers: Record<string, string>;
   thermalReport: ThermalReport | null;
+  aerialImageAnalysis: AerialImageAnalysis | null;
 }
 
 export interface ThermalReportBreakdown {

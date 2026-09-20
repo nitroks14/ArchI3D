@@ -3,6 +3,7 @@ Pipeline d'ingestion des factures/fiches techniques de materiaux :
 OCR (image ou PDF texte) -> extraction structuree via le provider IA actif.
 """
 from app.ai_provider.factory import get_ai_provider
+from app.material_invoices.schemas import ExtractedMaterialResult
 from app.ocr.service import extract_text_from_image, extract_text_from_pdf
 
 EXTRACTION_PROMPT_TEMPLATE = """
@@ -28,15 +29,9 @@ def extract_text(file_bytes: bytes, content_type: str) -> str:
     return extract_text_from_image(file_bytes)
 
 
-def extract_material_characteristics(ocr_text: str) -> dict:
+def extract_material_characteristics(ocr_text: str) -> ExtractedMaterialResult:
     if not ocr_text.strip():
-        return {
-            "material": None,
-            "product_reference": None,
-            "thickness_cm": None,
-            "r_value": None,
-            "quantity": None,
-            "warning": "Aucun texte lisible extrait du document (OCR vide).",
-        }
+        return ExtractedMaterialResult(warning="Aucun texte lisible extrait du document (OCR vide).")
     prompt = EXTRACTION_PROMPT_TEMPLATE.format(ocr_text=ocr_text[:4000])
-    return get_ai_provider().generate_structured(prompt)
+    raw = get_ai_provider().generate_structured(prompt)
+    return ExtractedMaterialResult.model_validate(raw)

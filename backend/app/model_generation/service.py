@@ -5,6 +5,7 @@ puis export GLB pour le viewer 3D. Heuristique volontairement simple pour la V1
 """
 from datetime import UTC, datetime
 
+from app.annexes.schemas import Annex
 from app.model_generation.glb_export import build_glb
 from app.model_generation.plan_heuristic import detect_rooms
 from app.model_generation.room_naming import guess_room_from_ocr_text
@@ -73,8 +74,18 @@ def generate_building_model(
     building.floors = [f for f in building.floors if f.name != floor_label] + [floor]
     building.generated_at = datetime.now(UTC).isoformat()
 
-    glb_bytes = build_glb(building)
-    glb_key = f"{state.id}/model/building.glb"
-    building.glb_url = get_storage_backend().save(glb_key, glb_bytes, "model/gltf-binary")
+    building.glb_url = regenerate_glb(state.id, building, state.annexes)
 
     return building
+
+
+def regenerate_glb(project_id: str, building: BuildingModel, annexes: list[Annex]) -> str:
+    """
+    Reconstruit et sauvegarde l'export GLB (batiment + annexes de la parcelle). Reutilise a
+    chaque generation/regeneration du modele de batiment ET a chaque creation/modification/
+    suppression d'annexe (cf app/annexes/router.py), pour que le jumeau numerique 3D reste a
+    jour sans etape manuelle supplementaire.
+    """
+    glb_bytes = build_glb(building, annexes)
+    glb_key = f"{project_id}/model/building.glb"
+    return get_storage_backend().save(glb_key, glb_bytes, "model/gltf-binary")

@@ -11,8 +11,8 @@ from uuid import uuid4
 
 from pydantic import Field
 
+from app.annexes.schemas import Annex
 from app.shared.base import CamelModel
-
 from app.shared.schemas import BuildingModel
 
 
@@ -53,5 +53,7 @@ class ProjectState(CamelModel):
     photos: list[PhotoFile] = Field(default_factory=list)
     invoices: list[MaterialInvoiceFile] = Field(default_factory=list)
     building_model: BuildingModel | None = None
+    annexes: list[Annex] = Field(default_factory=list)
     questionnaire_answers: dict[str, str] = Field(default_factory=dict)
     thermal_report: dict | None = None
+    aerial_image_analysis: dict | None = None  # dernier resultat d'analyse vision IA (toiture, solaire)

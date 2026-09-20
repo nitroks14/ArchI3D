@@ -4,6 +4,7 @@ etat apparent de l'isolation, equipements visibles, suggestion de type/nom de pi
 Utilise le provider IA actif (Gemini par defaut, Claude en option - cf app/ai_provider).
 """
 from app.ai_provider.factory import get_ai_provider
+from app.vision_analysis.schemas import AerialImageAnalysisResult, PhotoAnalysisResult
 
 ANALYSIS_INSTRUCTION = """
 Tu es un expert batiment/thermique qui analyse une photo interieure ou exterieure d'une maison.
@@ -22,5 +23,32 @@ d'hypothese non fondee sur l'image.
 """
 
 
-def analyze_photo(image_bytes: bytes, mime_type: str) -> dict:
-    return get_ai_provider().analyze_image(image_bytes, mime_type, ANALYSIS_INSTRUCTION)
+def analyze_photo(image_bytes: bytes, mime_type: str) -> PhotoAnalysisResult:
+    raw = get_ai_provider().analyze_image(image_bytes, mime_type, ANALYSIS_INSTRUCTION)
+    return PhotoAnalysisResult.model_validate(raw)
+
+
+AERIAL_ANALYSIS_INSTRUCTION = """
+Tu es un expert batiment/thermique qui analyse une image aerienne (vue du dessus) d'une maison,
+en particulier sa toiture. Reponds avec un objet JSON de la forme exacte :
+{
+  "roof_shape": "description sommaire de la forme de toiture visible, ou null",
+  "solar_panels_detected": true ou false,
+  "solar_panels_area_estimate_m2": nombre (surface approximative des panneaux visibles en m2) ou null,
+  "solar_panels_location_hint": "description sommaire de la position sur la toiture (ex: pan sud, pan principal) ou null",
+  "confidence": "faible|moyenne|elevee"
+}
+Ne fais pas d'hypothese non fondee sur l'image ; si aucun panneau n'est visible,
+solar_panels_detected doit etre false et les champs associes null.
+"""
+
+
+def analyze_aerial_image(image_bytes: bytes, mime_type: str) -> AerialImageAnalysisResult:
+    """
+    Analyse dediee a l'image aerienne : forme de toiture + detection/position approximative des
+    panneaux solaires existants (cf SolarInstallation, backend/app/shared/schemas.py). Point
+    d'integration vision IA pour la detection automatique - la position precise par pan de toit
+    et l'orientation/inclinaison restent a affiner en V2 (segmentation par facade/pan).
+    """
+    raw = get_ai_provider().analyze_image(image_bytes, mime_type, AERIAL_ANALYSIS_INSTRUCTION)
+    return AerialImageAnalysisResult.model_validate(raw)

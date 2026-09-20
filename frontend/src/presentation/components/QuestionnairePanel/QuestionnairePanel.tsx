@@ -2,6 +2,9 @@ import { useState } from "react";
 
 import type { QuestionnaireState } from "@/domain/model/Question";
 import { env } from "@/shared/config/env";
+import { Button } from "@/presentation/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/presentation/components/ui/card";
+import { Input } from "@/presentation/components/ui/input";
 
 interface QuestionnairePanelProps {
   questionnaire: QuestionnaireState | null;
@@ -18,73 +21,98 @@ export function QuestionnairePanel({ questionnaire, onLoadNext, onAnswer }: Ques
 
   if (!questionnaire) {
     return (
-      <section className="panel">
-        <h2>3. Questionnaire IA</h2>
-        <button onClick={onLoadNext}>Charger la prochaine question</button>
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>3. Questionnaire IA</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={onLoadNext}>Charger la prochaine question</Button>
+        </CardContent>
+      </Card>
     );
   }
 
   if (questionnaire.done || !questionnaire.question) {
     return (
-      <section className="panel">
-        <h2>3. Questionnaire IA</h2>
-        <p>Toutes les questions necessaires ont ete repondues pour l&apos;instant.</p>
-        <button onClick={onLoadNext}>Rafraichir</button>
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>3. Questionnaire IA</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <p className="text-sm text-muted-foreground">
+            Toutes les questions necessaires ont ete repondues pour l&apos;instant.
+          </p>
+          <Button variant="outline" onClick={onLoadNext}>
+            Rafraichir
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
   const question = questionnaire.question;
 
   return (
-    <section className="panel">
-      <h2>3. Questionnaire IA</h2>
-      {question.contextLabel && <p className="hint">Piece concernee : {question.contextLabel}</p>}
-      <p className="question-text">{question.text}</p>
+    <Card>
+      <CardHeader>
+        <CardTitle>3. Questionnaire IA</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {question.contextLabel && (
+          <p className="text-sm text-muted-foreground">Piece concernee : {question.contextLabel}</p>
+        )}
+        <p className="font-medium">{question.text}</p>
 
-      {question.type === "text" && (
-        <div className="row">
-          <input
-            value={textValue}
-            onChange={(e) => setTextValue(e.target.value)}
-            placeholder="Reponse..."
-          />
-          <button
-            onClick={() => {
-              onAnswer(question.field, textValue);
-              setTextValue("");
-            }}
-          >
-            Valider
-          </button>
-        </div>
-      )}
-
-      {question.type === "single_choice" && (
-        <div className="choice-list">
-          {question.options.map((option) => (
-            <button key={option.value} onClick={() => onAnswer(question.field, option.value)}>
-              {option.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {question.type === "construction_type_visual" && (
-        <div className="catalog-grid">
-          {question.options.map((option) => (
-            <button
-              key={option.value}
-              className="catalog-card"
-              onClick={() => onAnswer(question.field, option.value)}
+        {question.type === "text" && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              className="w-64"
+              value={textValue}
+              onChange={(e) => setTextValue(e.target.value)}
+              placeholder="Reponse..."
+            />
+            <Button
+              onClick={() => {
+                onAnswer(question.field, textValue);
+                setTextValue("");
+              }}
             >
-              {option.imageUrl && <img src={`${env.apiBaseUrl}${option.imageUrl}`} alt={option.label} />}
-              <span>{option.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </section>
+              Valider
+            </Button>
+          </div>
+        )}
+
+        {question.type === "single_choice" && (
+          <div className="flex flex-wrap gap-2">
+            {question.options.map((option) => (
+              <Button key={option.value} variant="outline" onClick={() => onAnswer(question.field, option.value)}>
+                {option.label}
+              </Button>
+            ))}
+          </div>
+        )}
+
+        {question.type === "construction_type_visual" && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {question.options.map((option) => (
+              <button
+                key={option.value}
+                className="flex flex-col items-center gap-1.5 rounded-md border bg-card p-2 text-center text-sm shadow-sm transition-colors hover:border-primary hover:bg-accent"
+                onClick={() => onAnswer(question.field, option.value)}
+              >
+                {option.imageUrl && (
+                  <img
+                    src={`${env.apiBaseUrl}${option.imageUrl}`}
+                    alt={option.label}
+                    className="w-full rounded"
+                  />
+                )}
+                <span>{option.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

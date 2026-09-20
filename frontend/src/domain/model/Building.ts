@@ -50,6 +50,16 @@ export interface Wall {
   cardinalOrientation: CardinalDirection | null;
 }
 
+export interface SolarInstallation {
+  id: string;
+  source: "vision_estimate" | "user_input";
+  areaM2: number | null;
+  tiltDeg: number | null;
+  cardinalOrientation: CardinalDirection | null;
+  estimatedCapacityKwp: number | null;
+  roofWallId: string | null;
+}
+
 export interface Equipment {
   id: string;
   type: "heating" | "ventilation" | "hot_water" | "other";
@@ -98,4 +108,5 @@ export interface BuildingModel {
   longitude: number | null;
   altitudeM: number | null;
   northOffsetDeg: number;
+  solarInstallations: SolarInstallation[];
 }

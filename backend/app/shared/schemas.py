@@ -70,6 +70,23 @@ class Wall(CamelModel):
     cardinal_orientation: CardinalDirection | None = None
 
 
+class SolarInstallation(CamelModel):
+    """
+    Installation photovoltaique/solaire thermique existante, detectee sur l'image aerienne
+    et/ou les photos exterieures (cf app/vision_analysis) ou saisie manuellement. Alimente le
+    bilan energetique (production existante) et se relie au point d'integration PVGIS prevu en
+    V2 pour le potentiel solaire (cf app/climate).
+    """
+
+    id: str = Field(default_factory=lambda: f"solar_{uuid4().hex[:8]}")
+    source: Literal["vision_estimate", "user_input"] = "user_input"
+    area_m2: float | None = None  # surface approximative des panneaux
+    tilt_deg: float | None = None  # inclinaison estimee par rapport a l'horizontale
+    cardinal_orientation: CardinalDirection | None = None  # reutilise l'orientation de facade/versant
+    estimated_capacity_kwp: float | None = None
+    roof_wall_id: str | None = None  # paroi (kind="roof") sur laquelle l'installation est situee, si connue
+
+
 class Equipment(CamelModel):
     """Equipement visible/declare (chauffage, ventilation, ECS...)."""
 
@@ -118,6 +135,7 @@ class BuildingModel(CamelModel):
     floors: list[Floor] = Field(default_factory=list)
     generated_at: str | None = None
     glb_url: str | None = None  # export 3D (boites simplifiees) genere pour le viewer Three.js
+    solar_installations: list[SolarInstallation] = Field(default_factory=list)
 
     # --- Geolocalisation (cf app/geolocation) ---
     latitude: float | None = None

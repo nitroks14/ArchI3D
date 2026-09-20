@@ -56,4 +56,9 @@ export const apiClient = {
     const response = await fetch(`${env.apiBaseUrl}${path}`, { method: "POST", body: form });
     return handleResponse<T>(response);
   },
+
+  async deleteRequest<T = void>(path: string): Promise<T> {
+    const response = await fetch(`${env.apiBaseUrl}${path}`, { method: "DELETE" });
+    return handleResponse<T>(response);
+  },
 };

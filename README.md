@@ -84,7 +84,7 @@ Aucun `fetch` direct dans un composant React : tout passe par
 | **Viewer 3D** : React Three Fiber + drei | Integration React idiomatique de Three.js, chargement GLTF/GLB natif (`useGLTF`). |
 | **Backend** : Python + FastAPI | Les besoins V1 (OpenCV, OCR, generation de mesh 3D avec trimesh, calcul scientifique) sont nativement couverts par l'ecosysteme Python (`opencv-python`, `pytesseract`, `trimesh`, `numpy`). FastAPI offre une DX proche de Express/Nest avec validation Pydantic integree, tres adaptee a l'upload de fichiers et au typage strict des schemas hierarchiques. |
 | **Persistance V1** : JSON par projet sur disque | Pas de base de donnees en V1 pour rester simple (scaffolding, pas de multi-utilisateur reel) - cf compromis ci-dessous. |
-| **Design system frontend** | **Aucun choisi pour cette iteration** - CSS simple, mobile-first, sans dependance. C'est un point ouvert a trancher avec le PO (shadcn/ui, Ant Design ou MUI) : cf section Limitations. |
+| **Design system frontend** : shadcn/ui (Radix + Tailwind CSS) | Decide par le PO. Integration manuelle (CLI shadcn interactive non automatisable dans ce sandbox) - primitives copiees dans `frontend/src/presentation/components/ui/` (button, input, label, card, select, slider, badge), `components.json` present pour permettre `npx shadcn add <composant>` par la suite. |
 
 ## Modele de donnees hierarchique
 
@@ -95,6 +95,7 @@ Le batiment est modelise de facon hierarchique, coherente entre le backend (Pyda
 Building
 ├── latitude / longitude / altitudeM        (geolocalisation, cf app/geolocation)
 ├── northOffsetDeg                          (orientation Nord, widget compas frontend)
+├── SolarInstallation[]                     (panneaux solaires existants, detection vision IA ou saisie)
 └── Floor[]  (RDC, Etage 1, Combles, Sous-sol...)
     └── Room[]
         ├── name / suggestedName / nameConfirmed   (nom propose par l'IA, toujours editable)
@@ -105,7 +106,26 @@ Building
         │   ├── MaterialLayer[]                      (source: vision_estimate | invoice | user_input)
         │   └── Opening[]                            (fenetres/portes, type de vitrage, Uw)
         └── Equipment[]                              (chauffage, ventilation, ECS...)
+
+Annex[]  (agregat distinct : abri de jardin, garage, dependance - cf backend/app/annexes)
+├── offsetXM / offsetYM / widthM / depthM / heightM / rotationDeg   (repere local partage avec Building)
+├── isConditioned                                                   (enveloppe thermique minimale si vrai)
+└── Wall[]                                                          (reutilise le meme schema que Room, si conditionnee)
 ```
+
+**SolarInstallation** (rattachee a `Building`) : surface approximative, inclinaison estimee et
+orientation cardinale d'une installation solaire existante, detectee automatiquement depuis
+l'image aerienne (`POST /projects/{id}/aerial-image/analyze`, cf `app/vision_analysis`) ou saisie
+manuellement. Se relie au point d'integration PVGIS prevu en V2 (potentiel solaire).
+
+**Annex** (agregat independant, pas un champ sur `Building`) : structure secondaire sur la
+parcelle avec sa propre geometrie simplifiee, positionnee dans le **meme repere local (metres)**
+que les pieces du batiment - ce qui lui permet d'apparaitre directement a cote du batiment
+principal dans l'export GLB (`backend/app/model_generation/glb_export.py` regenere la scene a
+chaque creation/modification/suppression d'annexe). Flux V1 **manuel** (l'utilisateur ajoute et
+positionne une annexe via `AnnexPanel`) - la detection automatique depuis l'image aerienne est un
+point d'integration vision IA identifie mais non implemente (V2), sur le meme principe que la
+detection des panneaux solaires.
 
 Le nom de chaque piece est **toujours suggere par l'IA** (OCR des labels lus sur le plan 2D +
 analyse vision des photos associees) mais reste editable/a valider par l'utilisateur via le
@@ -275,8 +295,6 @@ Cloudflare R2 pour eviter toute perte de fichiers entre redeploiements.
 
 ## Limitations connues et compromis V1
 
-- **Design system frontend non tranche** - CSS simple utilise pour ce scaffolding. A discuter
-  avec le PO (shadcn/ui, Ant Design, MUI...) et a integrer dans une iteration dediee.
 - **Pas de base de donnees** - etat de projet persiste en JSON sur disque
   (`backend/app/projects/store.py`). Suffisant pour un scaffold mono-utilisateur, a remplacer par
   une vraie base (Postgres/SQLite) des que le multi-utilisateur ou la concurrence devient un besoin.
@@ -286,7 +304,12 @@ Cloudflare R2 pour eviter toute perte de fichiers entre redeploiements.
   les deperditions reelles selon la configuration du logement.
 - **Pas de detection automatique d'echelle** sur le plan - l'utilisateur renseigne manuellement
   un ratio metres/pixel (`ModelPanel`).
-- **PVGIS non integre** - seul le point d'integration (`ClimateDataProvider`) existe.
+- **PVGIS non integre** - seul le point d'integration (`ClimateDataProvider`) existe. La
+  production existante des `SolarInstallation` detectees n'est pas encore deduite du bilan
+  energetique du moteur thermique (a faire en meme temps que l'integration PVGIS, V2).
+- **Detection automatique des annexes non implementee** - flux manuel uniquement en V1 (ajout via
+  `AnnexPanel`). Le point d'integration vision IA existe (meme principe que la detection des
+  panneaux solaires) mais n'est pas appele automatiquement.
 - **Pas d'authentification/multi-utilisateur** - hors perimetre V1.
 - **Environnement de dev sans pip/venv/internet verifie** - le backend n'a pas pu etre execute
   reellement pendant ce scaffolding (cf section "Lancer le projet en local").
