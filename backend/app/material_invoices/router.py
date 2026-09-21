@@ -9,6 +9,7 @@ from app.projects.models import ProjectState
 from app.projects.store import get_project_store
 from app.shared.base import CamelModel
 from app.storage.factory import get_storage_backend
+from app.wall_profiles.service import upsert_profile_from_wall
 
 router = APIRouter(prefix="/projects", tags=["material-invoices"])
 
@@ -81,5 +82,9 @@ def link_invoice(
     )
     invoice.linked_room_id = payload.room_id
     invoice.linked_wall_id = payload.wall_id
+
+    # Capitalise la composition de paroi issue de la facture comme profil reutilisable.
+    upsert_profile_from_wall(state.wall_assembly_profiles, wall)
+
     get_project_store().save(state)
     return {"wallId": wall.id, "layers": [layer.model_dump(by_alias=True) for layer in wall.layers]}

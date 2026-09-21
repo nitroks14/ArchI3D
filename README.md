@@ -17,6 +17,7 @@ implementation exhaustive.
 - [Stack technique et justifications](#stack-technique-et-justifications)
 - [Modele de donnees hierarchique](#modele-de-donnees-hierarchique)
 - [Approche de reconstruction 3D](#approche-de-reconstruction-3d)
+- [Profils de parois reutilisables (pre-remplissage)](#profils-de-parois-reutilisables-pre-remplissage)
 - [Ecran camera integre (cap boussole)](#ecran-camera-integre-cap-boussole)
 - [Fournisseur IA (Gemini / Claude)](#fournisseur-ia-gemini--claude)
 - [Stockage des fichiers](#stockage-des-fichiers)
@@ -58,6 +59,8 @@ backend/app/
 ├── material_invoices/    OCR + extraction IA des factures/fiches techniques materiaux
 ├── thermal_engine/       moteur de calcul simplifie + bibliotheque de valeurs par defaut
 ├── questionnaire/        moteur a regles du questionnaire progressif
+├── wall_profiles/        agregat WallAssemblyProfile - bibliotheque de parois reutilisables,
+│                         pre-remplissage intelligent (cf section dediee)
 ├── geolocation/          geocodage d'adresse + altitude (Nominatim, Open-Meteo)
 ├── climate/              abstraction ClimateDataProvider (Open-Meteo, point d'integration PVGIS)
 ├── ai_provider/          abstraction du fournisseur IA (Gemini par defaut, Claude optionnel)
@@ -119,6 +122,11 @@ Annex[]  (agregat distinct : abri de jardin, garage, dependance - cf backend/app
 ├── offsetXM / offsetYM / widthM / depthM / heightM / rotationDeg   (repere local partage avec Building)
 ├── isConditioned                                                   (enveloppe thermique minimale si vrai)
 └── Wall[]                                                          (reutilise le meme schema que Room, si conditionnee)
+
+WallAssemblyProfile[]  (agregat distinct, rattache au PROJET : bibliotheque de compositions de
+                        paroi reutilisables - cf backend/app/wall_profiles, section dediee)
+├── label / applicableWallKind / constructionType / layers
+└── usageCount / lastUsedAt                                         (pour la suggestion de pre-remplissage)
 ```
 
 **SolarInstallation** (rattachee a `Building`) : surface approximative, inclinaison estimee et
@@ -170,6 +178,39 @@ photorealiste qu'une reconstruction photogrammetrique classique - **c'est un cho
 (mitoyennete non detectee) - chaque piece recoit une seule paroi "exterior" agregeant tout son
 perimetre, ce qui **surestime** les deperditions des pieces interieures. Documente dans les
 `assumptions` retournees par le moteur thermique.
+
+## Profils de parois reutilisables (pre-remplissage)
+
+Pour eviter de forcer une nouvelle saisie a chaque mur/plancher/toiture similaire, l'app
+capitalise automatiquement les compositions de paroi deja renseignees et les repropose en
+pre-remplissage - cf nouvel agregat `WallAssemblyProfile` (`backend/app/wall_profiles/`).
+
+**Capture automatique** : des qu'une paroi recoit une donnee exploitable (typologie choisie au
+questionnaire, facture materiau liee), un profil est cree ou incremente (`usageCount`,
+`lastUsedAt`) - dedoublonnage par signature (type de paroi + typologie + materiaux). Rattache au
+**projet** (pas a l'utilisateur globalement) : plus simple et plus sur, pas de fuite d'un profil
+entre deux maisons differentes - le scope utilisateur reste une extension V2 possible si des
+besoins multi-projets similaires emergent.
+
+**Pre-remplissage intelligent** : quand le questionnaire genere une nouvelle question de
+typologie de construction pour un mur, il propose le profil le plus pertinent deja connu
+(`Question.suggestedValue` + `suggestionNote` explicatif). Correspondance simple pour la V1 (pas
+d'heuristique sophistiquee) : meme type de paroi, priorite aux profils deja utilises sur le meme
+etage, repli sur le profil le plus recemment utilise sinon. Affiche clairement comme une
+**suggestion pre-remplie**, jamais une valeur validee automatiquement - l'utilisateur voit un
+badge "Suggestion" et un bouton "Utiliser cette suggestion", mais reste libre de choisir toute
+autre option normalement (correction toujours possible, par element).
+
+**Action groupee explicite** : `WallProfilesPanel` liste les profils captures avec un bouton
+"Appliquer aux murs exterieurs non renseignes" par profil - action manuelle uniquement (jamais
+automatique/silencieuse), et qui **n'ecrase jamais** une paroi deja renseignee individuellement
+(seules les parois du meme type sans aucune donnee sont concernees). Utile pour accelerer la
+saisie sur les grandes maisons avec des murs similaires repetes.
+
+> Bug corrige au passage : la question de typologie de construction utilisait par erreur le type
+> `single_choice` (liste de texte) au lieu de `construction_type_visual` (cartes illustrees avec
+> images du catalogue) - le rendu visuel prevu des le depart n'etait jamais declenche. Corrige en
+> touchant ce meme bloc de code.
 
 ## Ecran camera integre (cap boussole)
 

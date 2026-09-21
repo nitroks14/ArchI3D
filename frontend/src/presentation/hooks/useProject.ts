@@ -13,8 +13,10 @@ import { computeThermalReport } from "@/application/use-cases/ComputeThermalRepo
 import { fetchConstructionCatalog } from "@/application/use-cases/FetchConstructionCatalog";
 import { manageBuildingLocation } from "@/application/use-cases/ManageBuildingLocation";
 import { manageAnnexes } from "@/application/use-cases/ManageAnnexes";
+import { manageWallProfiles } from "@/application/use-cases/ManageWallProfiles";
 import type { CreateAnnexInput } from "@/domain/model/Annex";
 import { HttpProjectRepository } from "@/infrastructure/http/HttpProjectRepository";
+import { HttpWallProfileRepository } from "@/infrastructure/http/HttpWallProfileRepository";
 import { HttpIngestionRepository } from "@/infrastructure/http/HttpIngestionRepository";
 import { HttpVisionAnalysisRepository } from "@/infrastructure/http/HttpVisionAnalysisRepository";
 import { HttpModelGenerationRepository } from "@/infrastructure/http/HttpModelGenerationRepository";
@@ -37,6 +39,7 @@ const thermalRepo = new HttpThermalReportRepository();
 const referenceRepo = new HttpReferenceDataRepository();
 const geolocationRepo = new HttpGeolocationRepository();
 const annexRepo = new HttpAnnexRepository();
+const wallProfileRepo = new HttpWallProfileRepository();
 
 export function useProject(projectId: string) {
   const [project, setProject] = useState<ProjectState | null>(null);
@@ -50,6 +53,7 @@ export function useProject(projectId: string) {
   const questionnaireActions = useMemo(() => runQuestionnaireStep(questionnaireRepo), []);
   const locationActions = useMemo(() => manageBuildingLocation(geolocationRepo), []);
   const annexActions = useMemo(() => manageAnnexes(annexRepo), []);
+  const wallProfileActions = useMemo(() => manageWallProfiles(wallProfileRepo), []);
 
   const runSafely = useCallback(async <T,>(action: () => Promise<T>): Promise<T | undefined> => {
     setBusy(true);
@@ -221,6 +225,16 @@ export function useProject(projectId: string) {
     [project, annexActions, refreshProject, runSafely],
   );
 
+  const applyWallProfileToUnset = useCallback(
+    (profileId: string, wallKind: string) =>
+      project &&
+      runSafely(async () => {
+        await wallProfileActions.applyToUnset(project.id, profileId, wallKind);
+        await refreshProject(project.id);
+      }),
+    [project, wallProfileActions, refreshProject, runSafely],
+  );
+
   return {
     project,
     questionnaire,
@@ -243,5 +257,6 @@ export function useProject(projectId: string) {
     analyzeAerial,
     createAnnex,
     removeAnnex,
+    applyWallProfileToUnset,
   };
 }

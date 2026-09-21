@@ -5,6 +5,7 @@ import { BuildingLocationPanel } from "@/presentation/components/BuildingLocatio
 import { QuestionnairePanel } from "@/presentation/components/QuestionnairePanel/QuestionnairePanel";
 import { ThermalReportPanel } from "@/presentation/components/ThermalReportPanel/ThermalReportPanel";
 import { AnnexPanel } from "@/presentation/components/AnnexPanel/AnnexPanel";
+import { WallProfilesPanel } from "@/presentation/components/WallProfilesPanel/WallProfilesPanel";
 import { Badge } from "@/presentation/components/ui/badge";
 import { Button } from "@/presentation/components/ui/button";
 
@@ -32,6 +33,7 @@ export function ProjectPage({ projectId, onBack }: ProjectPageProps) {
     analyzeAerial,
     createAnnex,
     removeAnnex,
+    applyWallProfileToUnset,
   } = useProject(projectId);
 
   if (!project) {
@@ -75,6 +77,11 @@ export function ProjectPage({ projectId, onBack }: ProjectPageProps) {
         annexes={project.annexes}
         onCreate={(input) => createAnnex(input)}
         onRemove={(annexId) => removeAnnex(annexId)}
+      />
+
+      <WallProfilesPanel
+        profiles={project.wallAssemblyProfiles}
+        onApplyToUnset={(profileId, wallKind) => applyWallProfileToUnset(profileId, wallKind)}
       />
 
       <QuestionnairePanel

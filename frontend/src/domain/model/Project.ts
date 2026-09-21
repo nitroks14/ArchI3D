@@ -4,6 +4,7 @@ import type {
   BuildingModel,
   ThermalInertiaClass,
 } from "@/domain/model/Building";
+import type { WallAssemblyProfile } from "@/domain/model/WallProfile";
 import type { UploadedFile } from "@/shared/types/common";
 
 export interface PlanFile extends UploadedFile {
@@ -72,6 +73,7 @@ export interface ProjectState {
   questionnaireAnswers: Record<string, string>;
   thermalReport: ThermalReport | null;
   aerialImageAnalysis: AerialImageAnalysis | null;
+  wallAssemblyProfiles: WallAssemblyProfile[];
 }
 
 export interface ThermalReportBreakdown {

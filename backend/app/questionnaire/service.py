@@ -7,6 +7,8 @@ a valider ici, conformement a la consigne produit.
 from app.questionnaire.schemas import Question, QuestionOption
 from app.shared.schemas import BuildingModel, Opening
 from app.thermal_engine.reference_data_loader import load_construction_types, load_glazing
+from app.wall_profiles.schemas import WallAssemblyProfile
+from app.wall_profiles.service import suggest_profile_for_wall
 
 HEATING_OPTIONS = [
     ("electric", "Chauffage electrique (radiateurs/convecteurs)"),
@@ -40,7 +42,12 @@ HEAVY_THERMAL_MASS_OPTIONS = [
 ]
 
 
-def get_next_question(building: BuildingModel, answers: dict[str, str]) -> Question | None:
+def get_next_question(
+    building: BuildingModel,
+    answers: dict[str, str],
+    wall_profiles: list[WallAssemblyProfile] | None = None,
+) -> Question | None:
+    wall_profiles = wall_profiles or []
     for floor in building.floors:
         for room in floor.rooms:
             if not room.name_confirmed:
@@ -67,6 +74,16 @@ def get_next_question(building: BuildingModel, answers: dict[str, str]) -> Quest
                     for key, entry in catalog.items()
                     if key != "unknown"
                 ]
+                suggested_profile = suggest_profile_for_wall(
+                    wall_profiles, building, exterior_wall.id
+                )
+                suggested_value = suggested_profile.construction_type if suggested_profile else None
+                suggestion_note = (
+                    f'Pre-rempli a partir du profil "{suggested_profile.label}" deja utilise '
+                    f"{suggested_profile.usage_count} fois dans ce projet - a confirmer ou corriger."
+                    if suggested_profile
+                    else None
+                )
                 return Question(
                     id=f"q_construction_{exterior_wall.id}",
                     field=f"wall:{exterior_wall.id}:construction_type",
@@ -74,9 +91,14 @@ def get_next_question(building: BuildingModel, answers: dict[str, str]) -> Quest
                         "Quel type de construction correspond le mieux aux murs "
                         f'exterieurs de "{room.name}" ?'
                     ),
-                    type="single_choice",
+                    # "construction_type_visual" : rendu en cartes illustrees cote frontend
+                    # (catalogue avec images, cf QuestionnairePanel) - corrige au passage, la
+                    # question utilisait par erreur "single_choice" (texte simple, sans images).
+                    type="construction_type_visual",
                     options=options,
                     context_label=room.name,
+                    suggested_value=suggested_value,
+                    suggestion_note=suggestion_note,
                 )
 
             if exterior_wall and not exterior_wall.openings:

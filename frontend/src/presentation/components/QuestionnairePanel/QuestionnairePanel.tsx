@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import type { QuestionnaireState } from "@/domain/model/Question";
 import { env } from "@/shared/config/env";
+import { Badge } from "@/presentation/components/ui/badge";
 import { Button } from "@/presentation/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/presentation/components/ui/card";
 import { Input } from "@/presentation/components/ui/input";
@@ -63,6 +64,20 @@ export function QuestionnairePanel({ questionnaire, onLoadNext, onAnswer }: Ques
         )}
         <p className="font-medium">{question.text}</p>
 
+        {question.suggestedValue && (
+          <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed p-2 text-sm">
+            <Badge variant="secondary">Suggestion pre-remplie</Badge>
+            <span className="text-muted-foreground">{question.suggestionNote}</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onAnswer(question.field, question.suggestedValue as string)}
+            >
+              Utiliser cette suggestion
+            </Button>
+          </div>
+        )}
+
         {question.type === "text" && (
           <div className="flex flex-wrap items-center gap-2">
             <Input
@@ -84,32 +99,48 @@ export function QuestionnairePanel({ questionnaire, onLoadNext, onAnswer }: Ques
 
         {question.type === "single_choice" && (
           <div className="flex flex-wrap gap-2">
-            {question.options.map((option) => (
-              <Button key={option.value} variant="outline" onClick={() => onAnswer(question.field, option.value)}>
-                {option.label}
-              </Button>
-            ))}
+            {question.options.map((option) => {
+              const isSuggested = option.value === question.suggestedValue;
+              return (
+                <Button
+                  key={option.value}
+                  variant={isSuggested ? "default" : "outline"}
+                  onClick={() => onAnswer(question.field, option.value)}
+                >
+                  {option.label}
+                  {isSuggested && " (suggere)"}
+                </Button>
+              );
+            })}
           </div>
         )}
 
         {question.type === "construction_type_visual" && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-            {question.options.map((option) => (
-              <button
-                key={option.value}
-                className="flex flex-col items-center gap-1.5 rounded-md border bg-card p-2 text-center text-sm shadow-sm transition-colors hover:border-primary hover:bg-accent"
-                onClick={() => onAnswer(question.field, option.value)}
-              >
-                {option.imageUrl && (
-                  <img
-                    src={`${env.apiBaseUrl}${option.imageUrl}`}
-                    alt={option.label}
-                    className="w-full rounded"
-                  />
-                )}
-                <span>{option.label}</span>
-              </button>
-            ))}
+            {question.options.map((option) => {
+              const isSuggested = option.value === question.suggestedValue;
+              return (
+                <button
+                  key={option.value}
+                  className={`relative flex flex-col items-center gap-1.5 rounded-md border bg-card p-2 text-center text-sm shadow-sm transition-colors hover:border-primary hover:bg-accent ${
+                    isSuggested ? "border-primary ring-2 ring-primary" : ""
+                  }`}
+                  onClick={() => onAnswer(question.field, option.value)}
+                >
+                  {isSuggested && (
+                    <Badge className="absolute -top-2 left-1/2 -translate-x-1/2">Suggestion</Badge>
+                  )}
+                  {option.imageUrl && (
+                    <img
+                      src={`${env.apiBaseUrl}${option.imageUrl}`}
+                      alt={option.label}
+                      className="w-full rounded"
+                    />
+                  )}
+                  <span>{option.label}</span>
+                </button>
+              );
+            })}
           </div>
         )}
       </CardContent>

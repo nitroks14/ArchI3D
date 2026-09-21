@@ -15,6 +15,7 @@ from app.model_generation.router import router as model_generation_router
 from app.questionnaire.router import router as questionnaire_router
 from app.thermal_engine.router import router as thermal_engine_router
 from app.vision_analysis.router import router as vision_analysis_router
+from app.wall_profiles.router import router as wall_profiles_router
 
 settings = get_settings()
 
@@ -49,6 +50,7 @@ app.include_router(model_generation_router)
 app.include_router(material_invoices_router)
 app.include_router(thermal_engine_router)
 app.include_router(questionnaire_router)
+app.include_router(wall_profiles_router)
 
 
 @app.get("/health")
