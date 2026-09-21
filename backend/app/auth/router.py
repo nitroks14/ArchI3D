@@ -54,7 +54,7 @@ def google_login() -> RedirectResponse:
         secure=settings.session_cookie_secure,
         samesite="lax",
         max_age=300,
-        path="/auth",
+        path="/",
     )
     return redirect
 
