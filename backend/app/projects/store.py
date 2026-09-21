@@ -18,6 +18,8 @@ class ProjectStore:
 
     def create(self, owner_id: str) -> ProjectState:
         state = ProjectState(owner_id=owner_id)
+        # Nom par defaut, editable ensuite depuis la page projet (PATCH /projects/{id}).
+        state.name = f"Projet {state.id}"
         # Arborescence de stockage {owner_id}/{project_id}/{plans,photos,aerial,invoices,model}
         # creee des la creation du projet (cf app/storage/base.py > ensure_project_structure).
         get_storage_backend().ensure_project_structure(owner_id, state.id)

@@ -5,13 +5,13 @@ fichiers sources. Pas d'integration Google Drive en V1 (cf README > roadmap V2).
 Tous les endpoints qui operent sur un projet existant exigent d'etre authentifie ET proprietaire
 du projet (cf app/projects/dependencies.get_owned_project_state) - 403 sinon.
 """
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from app.auth.dependencies import get_current_user
 from app.auth.schemas import User
 from app.ingestion.service import store_invoice, store_photo, store_plan, store_upload
 from app.projects.dependencies import get_owned_project_state
-from app.projects.models import ProjectState
+from app.projects.models import ProjectState, RenameProjectRequest
 from app.projects.store import get_project_store
 
 router = APIRouter(prefix="/projects", tags=["ingestion"])
@@ -30,6 +30,19 @@ def list_projects(current_user: User = Depends(get_current_user)) -> list[Projec
 
 @router.get("/{project_id}", response_model=ProjectState)
 def get_project(state: ProjectState = Depends(get_owned_project_state)) -> ProjectState:
+    return state
+
+
+@router.patch("/{project_id}", response_model=ProjectState)
+def rename_project(
+    payload: RenameProjectRequest, state: ProjectState = Depends(get_owned_project_state)
+) -> ProjectState:
+    """Renomme un projet (cf ProjectPage > header, edition inline du nom)."""
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="Le nom du projet ne peut pas etre vide")
+    state.name = name
+    get_project_store().save(state)
     return state
 
 

@@ -1,4 +1,5 @@
 import { useProject } from "@/presentation/hooks/useProject";
+import { ProjectNameEditor } from "@/presentation/components/ProjectNameEditor/ProjectNameEditor";
 import { UploadPanel } from "@/presentation/components/UploadPanel/UploadPanel";
 import { ModelPanel } from "@/presentation/components/ModelPanel/ModelPanel";
 import { BuildingLocationPanel } from "@/presentation/components/BuildingLocationPanel/BuildingLocationPanel";
@@ -25,6 +26,7 @@ export function ProjectPage({ projectId, onBack }: ProjectPageProps) {
     uploadPlan,
     uploadPhoto,
     uploadInvoice,
+    renameProject,
     generateModel,
     answerQuestion,
     getThermalReport,
@@ -46,8 +48,11 @@ export function ProjectPage({ projectId, onBack }: ProjectPageProps) {
         <Button variant="ghost" size="sm" onClick={onBack}>
           ← Mes projets
         </Button>
-        <h1 className="text-2xl font-bold">ArchI3D</h1>
-        <p className="text-sm text-muted-foreground">Projet {project.id}</p>
+        <ProjectNameEditor
+          name={project.name || `Projet ${project.id}`}
+          busy={busy}
+          onRename={(name) => renameProject(name)}
+        />
         {busy && <Badge variant="secondary">En cours...</Badge>}
         {error && <Badge variant="destructive">{error}</Badge>}
       </header>
@@ -56,8 +61,8 @@ export function ProjectPage({ projectId, onBack }: ProjectPageProps) {
         project={project}
         onUploadAerial={(file) => uploadAerialImage(file)}
         onUploadPlan={(file, floorLabel) => uploadPlan(file, floorLabel)}
-        onUploadPhoto={(file, kind, compassHeadingDeg) => uploadPhoto(file, kind, compassHeadingDeg)}
-        onUploadInvoice={(file) => uploadInvoice(file)}
+        onUploadPhoto={(files, kind, compassHeadingDeg) => uploadPhoto(files, kind, compassHeadingDeg)}
+        onUploadInvoice={(files) => uploadInvoice(files)}
         onAnalyzeAerial={() => analyzeAerial()}
       />
 

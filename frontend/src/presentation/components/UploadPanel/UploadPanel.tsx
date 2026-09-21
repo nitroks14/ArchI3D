@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import type { ProjectState } from "@/domain/model/Project";
 import { CameraCapture } from "@/presentation/components/CameraCapture/CameraCapture";
+import { FileDropzone } from "@/presentation/components/FileDropzone/FileDropzone";
 import { Button } from "@/presentation/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/presentation/components/ui/card";
 import { Input } from "@/presentation/components/ui/input";
@@ -24,8 +25,8 @@ interface UploadPanelProps {
   project: ProjectState;
   onUploadAerial: (file: File) => void;
   onUploadPlan: (file: File, floorLabel: string) => void;
-  onUploadPhoto: (file: File, kind: "interior" | "exterior", compassHeadingDeg?: number) => void;
-  onUploadInvoice: (file: File) => void;
+  onUploadPhoto: (files: File[], kind: "interior" | "exterior", compassHeadingDeg?: number) => void;
+  onUploadInvoice: (files: File[]) => void;
   onAnalyzeAerial: () => void;
 }
 
@@ -52,7 +53,14 @@ export function UploadPanel({
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="space-y-1.5">
-          <DropZone label="Image aerienne du batiment" accept="image/*" onFile={onUploadAerial} />
+          <FileDropzone
+            label="Image aerienne du batiment"
+            accept="image/*"
+            onFiles={(files) => {
+              const [file] = files;
+              if (file) onUploadAerial(file);
+            }}
+          />
           <p className="text-sm text-muted-foreground">
             {project.aerialImage ? "Image aerienne recue." : "Aucune image aerienne."}
           </p>
@@ -83,10 +91,13 @@ export function UploadPanel({
               placeholder="RDC, Etage 1, Combles..."
             />
           </div>
-          <DropZone
+          <FileDropzone
             label={`Plan 2D (${floorLabel})`}
             accept="image/*"
-            onFile={(file) => onUploadPlan(file, floorLabel)}
+            onFiles={(files) => {
+              const [file] = files;
+              if (file) onUploadPlan(file, floorLabel);
+            }}
           />
           <p className="text-sm text-muted-foreground">{project.plans.length} plan(s) recu(s).</p>
         </div>
@@ -109,20 +120,22 @@ export function UploadPanel({
               Prendre une photo (camera + boussole)
             </Button>
           )}
-          <DropZone
-            label="Photo"
+          <FileDropzone
+            label="Photo(s)"
             accept="image/*"
             capture="environment"
-            onFile={(file) => onUploadPhoto(file, photoKind)}
+            multiple
+            onFiles={(files) => onUploadPhoto(files, photoKind)}
           />
           <p className="text-sm text-muted-foreground">{project.photos.length} photo(s) recue(s).</p>
         </div>
 
         <div className="space-y-1.5">
-          <DropZone
-            label="Facture / fiche technique materiau (PDF ou photo)"
+          <FileDropzone
+            label="Facture(s) / fiche(s) technique(s) materiau (PDF ou photo)"
             accept="image/*,application/pdf"
-            onFile={onUploadInvoice}
+            multiple
+            onFiles={onUploadInvoice}
           />
           <p className="text-sm text-muted-foreground">{project.invoices.length} facture(s) recue(s).</p>
         </div>
@@ -131,61 +144,12 @@ export function UploadPanel({
       {showCamera && (
         <CameraCapture
           onCapture={(file, compassHeadingDeg) => {
-            onUploadPhoto(file, photoKind, compassHeadingDeg ?? undefined);
+            onUploadPhoto([file], photoKind, compassHeadingDeg ?? undefined);
             setShowCamera(false);
           }}
           onClose={() => setShowCamera(false)}
         />
       )}
     </Card>
-  );
-}
-
-function DropZone({
-  label,
-  accept,
-  onFile,
-  capture,
-}: {
-  label: string;
-  accept: string;
-  onFile: (file: File) => void;
-  /** "environment" ouvre directement la camera arriere sur mobile (prise de vue in situ). */
-  capture?: "environment" | "user";
-}) {
-  const [dragging, setDragging] = useState(false);
-
-  return (
-    <div
-      className={`rounded-md border-2 border-dashed p-3 text-sm transition-colors ${
-        dragging ? "border-primary bg-accent" : "border-input"
-      }`}
-      onDragOver={(e) => {
-        e.preventDefault();
-        setDragging(true);
-      }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setDragging(false);
-        const file = e.dataTransfer.files[0];
-        if (file) onFile(file);
-      }}
-    >
-      <label className="flex flex-wrap items-center gap-2">
-        <span>{label} - glisser-deposer ou</span>
-        <input
-          type="file"
-          accept={accept}
-          capture={capture}
-          className="max-w-full text-sm file:mr-2 file:rounded-md file:border-0 file:bg-secondary file:px-2 file:py-1 file:text-secondary-foreground"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) onFile(file);
-            e.target.value = "";
-          }}
-        />
-      </label>
-    </div>
   );
 }

@@ -14,4 +14,8 @@ export class HttpProjectRepository implements ProjectRepository {
   listProjects(): Promise<ProjectState[]> {
     return apiClient.get<ProjectState[]>("/projects");
   }
+
+  renameProject(projectId: string, name: string): Promise<ProjectState> {
+    return apiClient.patchJson<ProjectState>(`/projects/${projectId}`, { name });
+  }
 }

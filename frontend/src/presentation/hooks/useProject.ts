@@ -5,6 +5,7 @@ import type { ProjectState } from "@/domain/model/Project";
 import type { QuestionnaireState } from "@/domain/model/Question";
 import type { ConstructionTypeCatalog } from "@/domain/model/ConstructionTypeCatalog";
 import { uploadFiles } from "@/application/use-cases/UploadFiles";
+import { renameProject as renameProjectUseCase } from "@/application/use-cases/RenameProject";
 import { analyzeAerialImage, analyzePhoto } from "@/application/use-cases/AnalyzePhoto";
 import { generateBuildingModel } from "@/application/use-cases/GenerateBuildingModel";
 import { manageMaterialInvoice } from "@/application/use-cases/ManageMaterialInvoice";
@@ -103,14 +104,14 @@ export function useProject(projectId: string) {
   );
 
   const uploadPhoto = useCallback(
-    (file: File, kind: "interior" | "exterior", compassHeadingDeg?: number) =>
+    (files: File[], kind: "interior" | "exterior", compassHeadingDeg?: number) =>
       project &&
-      runSafely(() => uploads.photo(project.id, file, kind, compassHeadingDeg).then(setProject)),
+      runSafely(() => uploads.photo(project.id, files, kind, compassHeadingDeg).then(setProject)),
     [project, uploads, runSafely],
   );
 
   const uploadInvoice = useCallback(
-    (file: File) => project && runSafely(() => uploads.invoice(project.id, file).then(setProject)),
+    (files: File[]) => project && runSafely(() => uploads.invoice(project.id, files).then(setProject)),
     [project, uploads, runSafely],
   );
 
@@ -225,6 +226,12 @@ export function useProject(projectId: string) {
     [project, annexActions, refreshProject, runSafely],
   );
 
+  const renameProject = useCallback(
+    (name: string) =>
+      project && runSafely(() => renameProjectUseCase(projectRepo)(project.id, name).then(setProject)),
+    [project, runSafely],
+  );
+
   const applyWallProfileToUnset = useCallback(
     (profileId: string, wallKind: string) =>
       project &&
@@ -246,6 +253,7 @@ export function useProject(projectId: string) {
     uploadPlan,
     uploadPhoto,
     uploadInvoice,
+    renameProject,
     analyzeProjectPhoto,
     generateModel,
     extractInvoice,

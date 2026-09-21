@@ -63,6 +63,9 @@ export interface AerialImageAnalysis {
 export interface ProjectState {
   id: string;
   ownerId: string;
+  /** Nom affiche/editable cote UI (cf ProjectPage > header) - peut etre vide sur d'anciens
+   * projets crees avant l'ajout du renommage, cf fallback d'affichage cote presentation. */
+  name: string;
   createdAt: string;
   aerialImage: UploadedFile | null;
   plans: PlanFile[];

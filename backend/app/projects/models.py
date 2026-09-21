@@ -53,6 +53,9 @@ class MaterialInvoiceFile(UploadedFile):
 class ProjectState(CamelModel):
     id: str = Field(default_factory=lambda: _new_id("project"))
     owner_id: str  # id du User proprietaire (cf app/auth) - tous les endpoints verifient ce champ
+    # Nom affiche/editable cote UI (cf ProjectPage > header). Initialise a "Projet {id}" a la
+    # creation (cf ProjectStore.create) puis modifiable via PATCH /projects/{id}.
+    name: str = ""
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     aerial_image: UploadedFile | None = None
     plans: list[PlanFile] = Field(default_factory=list)
@@ -67,3 +70,7 @@ class ProjectState(CamelModel):
     # automatiquement des qu'une paroi recoit une donnee exploitable - jamais applique
     # automatiquement ailleurs, uniquement propose en suggestion ou via action groupee explicite.
     wall_assembly_profiles: list[WallAssemblyProfile] = Field(default_factory=list)
+
+
+class RenameProjectRequest(CamelModel):
+    name: str

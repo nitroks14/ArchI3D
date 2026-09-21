@@ -4,4 +4,5 @@ export interface ProjectRepository {
   createProject(): Promise<ProjectState>;
   getProject(projectId: string): Promise<ProjectState>;
   listProjects(): Promise<ProjectState[]>;
+  renameProject(projectId: string, name: string): Promise<ProjectState>;
 }

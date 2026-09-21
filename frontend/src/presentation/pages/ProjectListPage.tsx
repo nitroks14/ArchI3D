@@ -96,7 +96,8 @@ export function ProjectListPage({ user, onOpenProject, onOpenSettings, onLogout 
                   className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-secondary px-3 py-2 text-sm"
                 >
                   <span>
-                    Projet {project.id} - cree le {new Date(project.createdAt).toLocaleDateString("fr-FR")}
+                    {project.name || `Projet ${project.id}`} - cree le{" "}
+                    {new Date(project.createdAt).toLocaleDateString("fr-FR")}
                   </span>
                   <Button size="sm" onClick={() => onOpenProject(project.id)}>
                     Ouvrir
